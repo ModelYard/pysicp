@@ -1,0 +1,3 @@
+[submodule "vendor/sicp-latex"]
+	path = vendor/sicp-latex
+	url = https://github.com/junnunkarim/book__sicp_source__latex.git

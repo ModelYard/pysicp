@@ -1,0 +1,18 @@
+# complete-story
+
+Complete the current in-progress story: move it from `to-do` to `done` with the next sequential prefix, then commit all uncommitted work.
+
+## Steps
+
+1. **Find the story file** in `docs/project-management/stories/to-do/`. If there are multiple files, ask the user which one to complete.
+
+2. **Find the next prefix number**: list `docs/project-management/stories/done/`, extract the numeric prefix from each filename (e.g. `03-` → 3), take the max, add 1, and zero-pad to 2 digits (e.g. 4 → `04`).
+
+3. **Move the story**: rename the file to `docs/project-management/stories/done/<next-prefix>-<original-filename>` using `git mv` so the move is staged.
+
+4. **Commit all uncommitted work** using `git add -p` is NOT appropriate here — instead stage all tracked modifications plus the moved file, then create a commit with:
+   - Subject line: `Implement <story-name>` where `<story-name>` is the story filename (without prefix or `.md` extension), with dashes replaced by spaces
+   - Body: bullet points summarising what was implemented (infer from staged changes — new/modified files, key functions added, tests added)
+   - Trailer: `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>`
+
+Use `git status` and `git diff` before committing to understand what changes are present.
