@@ -1,0 +1,22 @@
+% The book, in reading order.
+%
+% This file is the progress ledger. A section appears here when it has been
+% translated; until then it does not exist in book/ at all, only in the
+% generated book/original/. "What is done" is answerable by reading this file,
+% and the build cannot silently include an untranslated section.
+%
+% Carve the originals with `make carve`, then seed a new section with
+% `make seed SECTION=ch1/01-01-02-naming-and-the-environment.tex` and add its
+% \input line here.
+%
+% This file sits at the repo root rather than in book/ on purpose. LaTeX
+% resolves \input relative to the build's working directory, but editors
+% (VimTeX, texlab) resolve it relative to the including FILE's directory. Only
+% when both are the repo root do the two agree -- otherwise the editor cannot
+% walk the include graph, and loses the whole-document TOC and cross-file
+% \ref completion.
+
+% --- Chapter 1: Building Abstractions with Procedures ---
+\input{book/ch1/01-00-00-building-abstractions-with-procedures.tex}
+\input{book/ch1/01-01-00-the-elements-of-programming.tex}
+\input{book/ch1/01-01-01-expressions.tex}

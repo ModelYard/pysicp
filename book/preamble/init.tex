@@ -1,0 +1,32 @@
+% Our preamble: upstream's, then our additions on top.
+%
+% Inheriting upstream's preamble wholesale is what lets a freshly carved section
+% compile unmodified -- chapter 1 alone uses their \codeBlock 155 times, plus
+% \exerciseGroup, \imageFigure, \niceQuote, \lettrine and \newterm. Resolved via
+% TEXINPUTS (see the Makefile), which is also how their relative
+% \input{preamble/packages} finds itself.
+\input{preamble/init}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Figures still live in the submodule; point at them rather than copying.
+% NOTE: these are git-lfs objects. Without git-lfs installed and `git lfs pull`
+% run inside vendor/sicp-latex, every one of them is a 132-byte pointer stub.
+% build/ holds the svg->pdf conversions produced by `make figures`; the
+% submodule is searched second for anything already shipped as pdf.
+\graphicspath{{build/}{vendor/sicp-latex/}{./}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\input{book/preamble/python}
+\input{book/preamble/translation}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Retitle the PDF metadata: upstream's preamble sets it to the original's
+% authors and title, which would be wrong on a derivative.
+\hypersetup{
+  pdfauthor={Andrew Mosson},
+  pdftitle={Structure and Interpretation of Computer Programs: A Python Translation},
+  pdfsubject={computer science, programming, abstraction, translation},
+}

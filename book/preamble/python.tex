@@ -1,0 +1,61 @@
+% --- Python code listings ---
+% ----------------------------
+%
+% Upstream's \lstset is tuned for Scheme in ways that are actively wrong for
+% Python: identifiers absorb symbol characters (alsodigit), quotes are letters
+% (alsoletter='), ";" starts a comment, keywords are case-insensitive, and "~"
+% is the escape character. Each of those is reset below, scoped to our
+% environments so Scheme blocks quoted from the original keep rendering as the
+% original renders them.
+
+\definecolor{PythonLight}{HTML}{686868}
+\definecolor{PythonDark}{HTML}{262626}
+\definecolor{PythonBlue}{HTML}{4172A3}
+\definecolor{PythonGreen}{HTML}{487818}
+\definecolor{PythonBrown}{HTML}{A07040}
+
+\lstdefinestyle{pythonStyle}{%
+  language=Python,
+  basicstyle=\ttfamily\small\color{PythonLight},
+  % undo the Scheme-specific lexing inherited from upstream's \lstset
+  sensitive=true,
+  alsodigit={},
+  alsoletter={_},
+  escapechar={},
+  morecomment=[l]{\#},
+  morestring=[b]",
+  morestring=[b]',
+  keywordstyle=\color{PythonBlue},
+  commentstyle=\itshape\color{PythonGreen},
+  stringstyle=\color{PythonBrown},
+  identifierstyle=\color{PythonDark},
+  numbers=left,
+  numberstyle=\scriptsize,
+  frame=l,
+  breaklines=true,
+  showstringspaces=false,
+}
+
+% Inline Python, for prose that names a function or a literal.
+\newcommand{\pycode}[1]{\lstinline[style=pythonStyle]{#1}}
+
+% A Python block typed directly into the text. Prefer \pythonFile below.
+\lstnewenvironment{pythonBlock}[1][]{%
+  \upshape%
+  \lstset{style=pythonStyle,#1}%
+}{}
+
+% THE preferred way to put Python in the book.
+%
+% Code included this way lives in a real .py file under code/, which means
+% pytest runs it and mypy checks it. Code typed inline into .tex is never
+% imported, never executed, never type-checked, and rots silently -- an
+% unacceptable failure mode for a book whose stated sequel is about
+% correctness.
+%
+%   \pythonFile{code/ch1/expressions.py}
+%   \pythonFile[firstline=12,lastline=20]{code/ch1/expressions.py}
+%
+\newcommand{\pythonFile}[2][]{%
+  \lstinputlisting[style=pythonStyle,#1]{#2}%
+}

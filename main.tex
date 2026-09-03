@@ -1,0 +1,49 @@
+% Structure and Interpretation of Computer Programs: A Python Translation
+%
+% Derived from the second edition by Harold Abelson and Gerald Jay Sussman with
+% Julie Sussman (MIT Press), via the community LaTeX source pinned at
+% vendor/sicp-latex. The original is licensed CC BY-SA 4.0; this translation is
+% likewise CC BY-SA 4.0.
+%
+% This file lives at the repo root, not in book/, deliberately: the build runs
+% from here (TEXINPUTS points into vendor/sicp-latex, and every path below is
+% repo-relative), and editors take a LaTeX project's root to be the directory
+% holding its main file. Keeping the two in the same place is what lets VimTeX
+% and texlab walk the \input graph and offer a whole-document TOC and
+% cross-file \ref completion.
+%
+%   make pdf
+%   make section SECTION=book/ch1/01-01-01-expressions.tex
+
+\input{book/buildconfig}
+
+% From vendor/sicp-latex via TEXINPUTS; consumes \paperType and \bookClass.
+\input{layouts/init}
+
+\documentclass[twoside]{\bookClass}
+
+\input{book/preamble/init}
+
+\begin{document}
+
+\VerbatimFootnotes
+
+\frontmatter
+\input{book/frontmatter/init}
+
+\mainmatter
+\ifx\buildSection\buildSectionAll
+  \input{contents}
+\else
+  \input{\buildSection}
+\fi
+
+\backmatter
+
+% Inherited verbatim from the submodule: these are the bibliography entries the
+% original's footnotes cite by name (\label{McCarthy 1960} and friends), and a
+% translation that kept the footnotes but dropped their targets would ship 16
+% dangling references. Self-contained -- it reads none of the build switches.
+\input{backmatter/references}
+
+\end{document}

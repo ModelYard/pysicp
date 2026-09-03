@@ -1,0 +1,60 @@
+% --- Translation notes ---
+% -------------------------
+%
+% The introduction promises to name the build-or-reveal move *every time* one is
+% made. That makes it a recurring structural element of the book, not incidental
+% prose, so it gets a first-class environment: retrofitting one across 121
+% sections later would be miserable, and prose-only notes drift in wording.
+%
+% Built from rules and spacing only. Upstream loads none of framed, mdframed,
+% tcolorbox or etoolbox, and adding a package to the pinned submodule's
+% dependency set for a box border is a poor trade.
+
+\newlength{\translationNoteSkip}
+\setlength{\translationNoteSkip}{0.6\baselineskip}
+
+% \begin{translationNote}{Build from scarcity}
+%   Python's dict is this table, finished. We build it anyway, because ...
+% \end{translationNote}
+\newenvironment{translationNote}[1]{%
+  \par%
+  \needspace{4\baselineskip}%
+  \vspace{\translationNoteSkip}%
+  \noindent{\color{MediumGray}\rule{\linewidth}{0.4pt}}\par%
+  \vspace{-0.5\baselineskip}%
+  \noindent{\footnotesize\sffamily\bfseries\color{DeepGray}#1}\par%
+  \nopagebreak%
+  \vspace{0.2\baselineskip}%
+  \begingroup%
+  \small%
+  \setlength{\parindent}{0pt}%
+  \ignorespaces%
+}{%
+  \par%
+  \endgroup%
+  \vspace{-0.3\baselineskip}%
+  \noindent{\color{MediumGray}\rule{\linewidth}{0.4pt}}\par%
+  \vspace{\translationNoteSkip}%
+}
+
+% The two moves the introduction commits to. Wrappers rather than free text so
+% the vocabulary stays fixed across the whole book and the notes stay greppable.
+\newenvironment{buildFromScarcity}{%
+  \begin{translationNote}{Build from scarcity}%
+}{%
+  \end{translationNote}%
+}
+\newenvironment{revealTheSurface}{%
+  \begin{translationNote}{Reveal the surface}%
+}{%
+  \end{translationNote}%
+}
+
+% For the third category the introduction insists on keeping distinct from the
+% other two: a claim that is a structural fact about the language, not a matter
+% of taste.
+\newenvironment{notTaste}{%
+  \begin{translationNote}{Fact, not taste}%
+}{%
+  \end{translationNote}%
+}

@@ -1,0 +1,30 @@
+% Build configuration for the Python translation.
+%
+% Deliberately our own rather than the upstream buildconfig.tex: upstream's is
+% wired to the five original chapters, and editing it would mean editing the
+% pinned submodule. Only \paperType and \bookClass are consumed by upstream's
+% layouts/, so those are the only two we must supply to reuse their preamble.
+
+\providecommand{\latestVersion}{0.1.0}
+\providecommand{\latestVersionLink}%
+  {https://github.com/junnunkarim/book__sicp_source__latex}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\providecommand{\bookClass}{book}
+
+% paperType modes (consumed by vendor/sicp-latex/layouts/init.tex)
+% 0 -> a5, 1 -> a4, 2 -> ustrade
+\providecommand{\paperType}{0}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Partial builds. A full build is 31k lines of source; an edit loop that
+% recompiles the whole book is an edit loop nobody runs. Set \buildSection to a
+% single section's path to compile just that one:
+%
+%   make section SECTION=book/ch1/01-01-01-expressions.tex
+%
+% "all" builds everything listed in book/contents.tex.
+\providecommand{\buildSection}{all}
+\def\buildSectionAll{all}
