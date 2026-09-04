@@ -2,137 +2,154 @@
 \label{Section 1.1.1}
 
 One easy way to get started at programming is to examine some typical
-interactions with an interpreter for the Scheme dialect of Lisp. Imagine that
-you are sitting at a computer terminal. You type an \newterm{expression}, and
+interactions with an interpreter for the Python language. Imagine that you
+are sitting at a computer terminal. You type an \newterm{expression}, and
 the interpreter responds by displaying the result of its \newterm{evaluating}
 that expression.
 
 One kind of primitive expression you might type is a number. (More precisely,
 the expression that you type consists of the numerals that represent the number
-in base 10.) If you present Lisp with a number
+in base 10.) If you present Python with a number
 
 \begin{codeBlock}
-486
-\end{codeBlock}
-
-\noindent
-the interpreter will respond by printing\footnote{Throughout this book, when
-we wish to emphasize the distinction between the input typed by the user and
-the response printed by the interpreter, we will show the latter in slanted
-characters.}
-
-\begin{codeBlock}
+>>> 486
 ~\textit{486}~
 \end{codeBlock}
 
 \noindent
+the interpreter will respond by printing \textit{486}\footnote{Throughout this
+book, when we wish to emphasize the distinction between the input typed by the
+user and the response printed by the interpreter, we will show the latter in
+slanted characters.}
+
 Expressions representing numbers may be combined with an expression
 representing a primitive procedure (such as \code{+} or \code{*}) to form a
 compound expression that represents the application of the procedure to those
 numbers. For example:
 
 \begin{codeBlock}
-(+ 137 349)
+>>> 137 + 349
 ~\textit{486}~
 \end{codeBlock}
 
 \begin{codeBlock}
-(- 1000 334)
+>>> 1000 - 334
 ~\textit{666}~
 \end{codeBlock}
 
 \begin{codeBlock}
-(* 5 99)
+>>> 5 * 99
 ~\textit{495}~
 \end{codeBlock}
 
 \begin{codeBlock}
-(/ 10 5)
-~\textit{2}~
+>>> 10 / 5
+~\textit{2.0}~
 \end{codeBlock}
 
 \begin{codeBlock}
-(+ 2.7 10)
+>>> 2.7 + 10
 ~\textit{12.7}~
 \end{codeBlock}
 
 \noindent
-Expressions such as these, formed by delimiting a list of expressions within
-parentheses in order to denote procedure application, are called
-\newterm{combinations}. The leftmost element in the list is called the
-\newterm{operator}, and the other elements are called \newterm{operands}. The
-value of a combination is obtained by applying the procedure specified by the
-operator to the \newterm{arguments} that are the values of the operands.
+Expressions such as these, formed by joining simpler expressions with a symbol
+that denotes a procedure, are called \newterm{compound expressions}. The symbol
+is called the \newterm{operator}, and the expressions it stands between are
+called the \newterm{operands}. The value of a compound expression is obtained by
+applying the procedure specified by the operator to the \newterm{arguments} that
+are the values of the operands.\footnote{Python reserves the phrase
+\newterm{compound statement} for \code{if}, \code{for}, \code{while} and their
+kin. A compound statement directs the order in which things are done; a compound
+expression denotes a value. We will have little to say about statements until we
+need them.}
 
-The convention of placing the operator to the left of the operands is known as
-\newterm{prefix notation}, and it may be somewhat confusing at first because it
-departs significantly from the customary mathematical convention. Prefix
-notation has several advantages, however. One of them is that it can
-accommodate procedures that may take an arbitrary number of arguments, as in
-the following examples:
+The convention of placing the operator in between its operands is known as
+\newterm{infix notation}, and it is the way most common programming languages
+work.  Infix is not the only way to represent the interaction between
+operators and operands.  Lisp famously uses something called \newterm{prefix
+notation}, for example \code{(- 1000 334)}. A few things are worth noting here:
+in Lisp every operator is applied to its operands in the same way, so \code{-}
+and \code{minus} would behave identically if defined identically; and by putting
+the operator first and enclosing the whole expression in parentheses, no
+ambiguity about the order of operations can arise. Infix, by contrast, needs a
+rule for that order.  Python tries to closely model the
+arithmetic rules we learn in school, PEMDAS\footnote{Parentheses, Exponents,
+Multiplication and Division, and finally Addition and Subtraction. However,
+there is one wrinkle, if you write \pycode{-2 ** 2} you get \pycode{-4} because
+Python interprets it as \pycode{-(2 ** 2)} not \pycode{(-2)**2}.}
+
+The original text notes that one of the advantages of prefix notation is that it
+can accommodate procedures that take an arbitrary number of operands. Infix
+cannot do this.  To add four numbers we have to do the following:
 
 \begin{codeBlock}
-(+ 21 35 12 7)
+>>> 21 + 35 + 12 + 7
 ~\textit{75}~
 \end{codeBlock}
 
+\noindent
+And to multiply three numbers we need to do:
+
 \begin{codeBlock}
-(* 25 4 12)
+>>> 25 * 4 * 12
 ~\textit{1200}~
 \end{codeBlock}
 
 \noindent
-No ambiguity can arise, because the operator is always the leftmost element and
-the entire combination is delimited by the parentheses.
-
-A second advantage of prefix notation is that it extends in a straightforward
-way to allow combinations to be \textit{nested}, that is, to have combinations whose
-elements are themselves combinations:
+One advantage of infix notation is that expressions read much as they do in
+ordinary arithmetic, for example:
 
 \begin{codeBlock}
-(+ (* 3 5) (- 10 6))
+>>> 3 * 5 + 10 - 6
 ~\textit{19}~
 \end{codeBlock}
 
 \noindent
-There is no limit (in principle) to the depth of such nesting and to the
-overall complexity of the expressions that the Lisp interpreter can evaluate.
-It is we humans who get confused by still relatively simple expressions such as
+Contrast that with the original text's:
 
 \begin{codeBlock}
-(+ (* 3 (+ (* 2 4) (+ 3 5))) (+ (- 10 7) 6))
+(+ (* 3 5) (- 10 6))
 \end{codeBlock}
 
 \noindent
-which the interpreter would readily evaluate to be 57.  We can help ourselves
-by writing such an expression in the form
+That is arguably much harder to read. Note that we are always free to group
+expressions with parentheses in Python; the above could be written as:
 
 \begin{codeBlock}
-(+ (* 3
-      (+ (* 2 4)
-         (+ 3 5)))
-   (+ (- 10 7)
-      6))
+>>> (3 * 5) + (10 - 6)
+~\textit{19}~
 \end{codeBlock}
 
 \noindent
-following a formatting convention known as \newterm{pretty-printing}, in which
-each long combination is written so that the operands are aligned vertically.
-The resulting indentations display clearly the structure of the
-expression.\footnote{Lisp systems typically provide features to aid the user in
-formatting expressions.  Two especially useful features are one that
-automatically indents to the proper pretty-print position whenever a new line
-is started and one that highlights the matching left parenthesis whenever a
-right parenthesis is typed.}
+Expressions can be as complicated as we want, consider
+
+\begin{codeBlock}
+>>> (((2 * 4) + (3 + 5)) * 3) + ((10 - 7) + 6)
+~\textit{57}~
+\end{codeBlock}
+
+\noindent
+which is hard enough to read in infix notation; it is even harder in prefix. The
+original text notes that Lisp programmers follow a formatting convention called
+\newterm{pretty-printing} to make such expressions easier to read. In Python the
+convention is not merely discouraged but mechanically undone: the formatters the
+community has settled on will collapse such an expression back onto one
+line.\footnote{Given the expression above, laid out over five aligned lines,
+\code{ruff format} returns it as the single line printed here. Where an
+expression is too long to fit, the formatter breaks it at the loosest operator
+and indents every part equally, so the indentation never records the shape of
+the expression the way pretty-printing does.}
 
 Even with complex expressions, the interpreter always operates in the same
 basic cycle: It reads an expression from the terminal, evaluates the
 expression, and prints the result.  This mode of operation is often expressed
 by saying that the interpreter runs in a \newterm{read-eval-print loop}.
 Observe in particular that it is not necessary to explicitly instruct the
-interpreter to print the value of the expression.\footnote{Lisp obeys the
-convention that every expression has a value. This convention, together with
-the old reputation of Lisp as an inefficient language, is the source of the
-quip by Alan Perlis (paraphrasing Oscar Wilde) that ``Lisp programmers know the
-value of everything but the cost of nothing.''}
-
+interpreter to print the value of the expression.\footnote{Python mostly obeys
+the convention that every expression has a value. That convention, which it
+shares with Lisp, together with the old reputation of Lisp as an inefficient
+language, is the source of the quip by Alan Perlis (paraphrasing Oscar Wilde)
+that ``Lisp
+programmers know the value of everything but the cost of nothing.'' It might be
+said of Python programmers as well.}

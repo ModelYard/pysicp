@@ -1,0 +1,16 @@
+% Macro definitions for the HTML build ONLY -- never fed to xelatex.
+%
+% Pandoc's LaTeX reader expands \newcommand definitions it finds in its input,
+% but knows nothing about macros defined in a preamble it never sees. Left
+% undefined, it does not warn: it silently DELETES the macro and its argument,
+% so `\newterm{expression}` vanishes mid-sentence. These restate the upstream
+% definitions (vendor/sicp-latex/preamble/components.tex) in terms pandoc
+% understands.
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\newterm}[1]{\emph{#1}}
+\newcommand{\var}[1]{\emph{#1}}
+\newcommand{\acronym}[1]{#1}
+\newcommand{\link}[1]{\ref{#1}}
+\newcommand{\exerciseHeading}[1]{\paragraph{#1}}
+\newcommand{\lettrine}[2]{#1#2}
+\newcommand{\monoItalic}[1]{\emph{\texttt{#1}}}

@@ -18,6 +18,16 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% Two typographic choices upstream added that the original book did not have.
+% Their README lists "Code blocks now have numbered lines" among their changes,
+% and they set code in grey (SchemeLight, #686868) rather than black. Both are
+% reverted here so listings match the book being translated.
+%
+% NOTE: SchemeLight is also upstream's commentstyle, so comments become black
+% too; they stay distinguishable by their italics.
+\definecolor{SchemeLight}{HTML}{000000}
+\lstset{numbers=none}
+
 \input{book/preamble/python}
 \input{book/preamble/translation}
 

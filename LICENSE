@@ -1,3 +1,18 @@
+This repository contains two kinds of work under two licences.
+
+CODE -- everything under src/, code/, tools/ and tests/, and the build
+machinery -- is licensed under the MIT License, reproduced below.
+
+BOOK TEXT -- everything under book/, and the PDF and HTML built from it -- is a
+translation of "Structure and Interpretation of Computer Programs", second
+edition, by Harold Abelson and Gerald Jay Sussman with Julie Sussman, which is
+licensed CC BY-SA 4.0. As a derivative work the translation is likewise
+licensed CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/
+
+The upstream source is pinned at vendor/sicp-latex and carries its own LICENSE.
+
+--------------------------------------------------------------------------
+
 MIT License
 
 Copyright (c) 2026 Andrew Mosson

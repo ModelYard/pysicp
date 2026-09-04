@@ -27,7 +27,7 @@ LATEXMK_BIN := $(if $(wildcard $(TEXBIN)/latexmk),$(TEXBIN)/latexmk,latexmk)
 # Upstream's .latexmkrc sets $pdf_mode = 5, i.e. xelatex.
 LATEXMK := $(LATEXMK_BIN) -xelatex -interaction=nonstopmode -halt-on-error
 
-.PHONY: help carve seed diff figures pdf section check clean distclean doctor
+.PHONY: help carve seed diff figures pdf section markdown html serve check clean distclean doctor
 
 help:
 	@echo "carve     regenerate book/original/ from the pinned submodule"
@@ -39,6 +39,9 @@ help:
 	@echo "          make section SECTION=book/ch1/01-01-01-expressions.tex"
 	@echo "diff      diff a translated section against its original"
 	@echo "          make diff SECTION=ch1/01-01-01-expressions.tex"
+	@echo "markdown  convert the book to GitHub-flavoured markdown"
+	@echo "html      build the web edition, with REPL-aware copy buttons"
+	@echo "serve     build the web edition and serve it over http"
 	@echo "check     pytest + mypy + ruff over the book's code"
 	@echo "doctor    report missing build dependencies"
 
@@ -100,6 +103,51 @@ section:
 	@mkdir -p $(OUT_DIR)
 	$(LATEXMK) -outdir=$(OUT_DIR) \
 		-usepretex="\newcommand{\buildSection}{$(SECTION)}" $(BOOK)
+
+# --- html ------------------------------------------------------------------
+#
+# The .tex sources stay the single source of truth; HTML is generated. Two
+# steps are non-obvious and both are load-bearing:
+#
+#  1. codeBlock -> verbatim, textually. Pandoc handles verbatim lexically, so
+#     the rewrite CANNOT be done with a macro definition -- and without it the
+#     line structure of every code block collapses.
+#  2. tools/pandoc/shim.tex. Pandoc silently DELETES macros it does not know,
+#     along with their arguments, so \newterm{expression} disappears mid
+#     sentence with no warning. The shim defines them.
+
+HTML_OUT  := $(OUT_DIR)/book.html
+SECTIONS  := $(shell sed -n 's/^\\input{\(book\/[^}]*\)}.*/\1/p' contents.tex)
+
+$(OUT_DIR)/book.md: contents.tex $(SECTIONS) tools/pandoc/shim.tex
+	@mkdir -p $(OUT_DIR)
+	@cat tools/pandoc/shim.tex > $@.tex
+	@for f in $(SECTIONS); do \
+		sed -E 's/\\begin\{(codeBlock|compactCodeBlock)\}/\\begin{verbatim}/; \
+		        s/\\end\{(codeBlock|compactCodeBlock)\}/\\end{verbatim}/' $$f >> $@.tex; \
+	done
+	pandoc -f latex -t gfm --lua-filter=tools/pandoc/sicp.lua -o $@ $@.tex
+	@rm -f $@.tex
+
+markdown: $(OUT_DIR)/book.md
+	@echo "wrote $(OUT_DIR)/book.md"
+
+# --include-after-body puts the script INSIDE <body>. Appending it to the file
+# instead leaves it after </html>, where it is a parse error the browser has to
+# recover from.
+html: $(OUT_DIR)/book.md tools/html/copybutton.js tools/html/book.css tools/html/after-body.html
+	pandoc -f gfm -t html5 --standalone --toc --section-divs \
+		--metadata title="SICP: A Python Translation" \
+		--css book.css --include-after-body=tools/html/after-body.html \
+		$(OUT_DIR)/book.md -o $(HTML_OUT)
+	@cp tools/html/book.css tools/html/copybutton.js $(OUT_DIR)/
+	@echo "wrote $(HTML_OUT) -- open with 'make serve' rather than file:// if the"
+	@echo "  clipboard API is unavailable in your browser"
+
+# A real origin. Some browsers restrict clipboard access on file:// URLs.
+serve: html
+	@echo "serving $(OUT_DIR) at http://localhost:8000/book.html (Ctrl-C to stop)"
+	@cd $(OUT_DIR) && python3 -m http.server 8000
 
 # --- the book's code -------------------------------------------------------
 #

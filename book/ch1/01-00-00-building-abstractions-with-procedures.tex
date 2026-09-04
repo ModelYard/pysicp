@@ -57,6 +57,17 @@ parts can be constructed, replaced, and debugged separately.
 
 \subsubsection*{Programming in Lisp}
 
+% NOTE TO SELF: once the new preface is part of the book, replace the phrase
+% "as we remark in the preface" below with a real cross-reference back to the
+% passage there that explains the translation.
+This book was written in Lisp, and, as we remark in the preface, it has been
+translated into Python. Most of the text that follows has been left as its
+authors wrote it. The two languages differ in ways that bear directly on the
+discussion, however, and the argument will often have occasion to say what Lisp
+does and why it does it; a reader who knows something of where Lisp came from
+will find those passages easier going. We have therefore left the account below
+as it stood, and added a companion account of Python after it.
+
 We need an appropriate language for describing processes, and we will use for
 this purpose the programming language Lisp. Just as our everyday thoughts are
 usually expressed in our natural language (such as English, French, or
@@ -146,3 +157,72 @@ excellent language for writing programs that must manipulate other programs as
 data, such as the interpreters and compilers that support computer languages.
 Above and beyond these considerations, programming in Lisp is great fun.
 
+\subsubsection*{Programming in Python}
+
+Peter Norvig, introducing the language to an audience of Lisp programmers,
+observed that ``Python can be seen as a dialect of Lisp with `traditional'
+syntax (what Lisp people call `infix' or `m-lisp'
+syntax).''\footnote{\url{https://www.norvig.com/python-lisp.html}} That is not
+quite how the language's own author has described it. Recounting how Python
+came by its functional operators, Guido van Rossum wrote that ``About 12 years
+ago, Python aquired \code{lambda}, \code{reduce()}, \code{filter()} and
+\code{map()}, courtesy of (I believe) a Lisp hacker who missed them and
+submitted working patches''---and then proposed removing most of them from the
+language.\footnote{``The fate of \code{reduce()} in Python 3000,'' March 10,
+2005: \url{https://www.artima.com/weblogs/viewpost.jsp?thread=98196}. In the
+event \code{lambda}, \code{map} and \code{filter} survived the transition to
+Python 3; only \code{reduce} was turned out of the set of built-in procedures.}
+The kinship Norvig identifies is real, but it was arrived at from the other
+direction, and by an author who did not especially prize it.
+
+Python was begun by van Rossum at the Centrum Wiskunde \& Informatica in
+Amsterdam, where implementation started over the Christmas holiday of 1989. He
+had spent much of the preceding decade there working with Lambert Meertens on
+\acronym{ABC}, a language intended for people who were not programmers by
+trade, and many of the ideas he had formed on that project---and some of his
+dissatisfactions with it---passed directly into the new language. \acronym{ABC}
+had failed to find an audience, and van Rossum had moved to the group building
+the Amoeba distributed operating system, which wanted a language for writing
+the administrative programs that a large system accumulates. What he set out to
+build was a language that would combine the convenience of shell scripting, the
+approachability of \acronym{ABC}, the power of a systems language, and a
+capacity for extension by ordinary users.
+
+The first public release, Python 0.9.0, appeared in February 1991. The name owes
+nothing to the snake; van Rossum took it from \textit{Monty Python's Flying
+Circus}, wanting something short and faintly disreputable.\footnote{The
+convention is honored to this day in the language's documentation, where
+example programs are populated with spam, eggs, and the occasional parrot.} The
+language then grew in the manner Lisp had grown, informally and in response to
+its users, until the accumulated irregularities of seventeen years were
+addressed at a stroke: Python 3, released in December 2008, was the first
+revision deliberately permitted to break programs written for its predecessor.
+The community took the better part of a decade to complete the crossing. This
+book is written in Python 3, and assumes no acquaintance with what came before.
+
+The authors of the original paused at this point to ask why, if Lisp is not a
+mainstream language, they should use it as the framework for their discussion.
+We are obliged to put the question the other way around. At the time of this
+writing, in September of 2026, Python is by most measures the most widely used
+programming language in the world, and has held that position for several years
+without serious challenge.\footnote{It has led the \acronym{TIOBE} index
+continuously through 2026, at a share roughly twice that of the language
+behind it---a margin without precedent in that index.} The original chose Lisp
+in spite of its standing, for the sake of features no popular language then
+offered. We choose Python in part because of its standing: the reader we hope
+to reach has most likely already written some, and the ideas this book is
+concerned with are worth more to that reader in the language they already have
+than in one they must first be persuaded to learn.
+
+A word about style is in order before we begin. Python's idioms are not Lisp's,
+and this book follows the shape of an argument built for another language.
+The early chapters will therefore be at times less than idiomatic---we will
+build things by hand that a working Python programmer would reach into the
+standard library for, and we will sometimes decline a convenience the language
+is offering us. This is deliberate, and where we depart far enough from what
+would ordinarily be written we will say so, and say why. The compensation is
+the whole purpose of the exercise: a reader who has built the mechanisms
+themselves will, by the end of the book, understand the level beneath the
+idioms---what Python is doing when it dispatches on a type, captures a
+variable, or evaluates a function call---and will read the ordinary idiom
+afterward with a clearer idea of what it costs and what it conceals.

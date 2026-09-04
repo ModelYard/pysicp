@@ -50,6 +50,16 @@
   \end{translationNote}%
 }
 
+% Points where the two languages genuinely diverge, as opposed to points where
+% we have made a choice between them. These recur throughout -- they are the
+% seam the introduction calls the most interesting boundary in the book -- so
+% they get their own environment rather than being folded into prose.
+\newenvironment{departure}{%
+  \begin{translationNote}{Where Python departs from Lisp}%
+}{%
+  \end{translationNote}%
+}
+
 % For the third category the introduction insists on keeping distinct from the
 % other two: a claim that is a structural fact about the language, not a matter
 % of taste.
