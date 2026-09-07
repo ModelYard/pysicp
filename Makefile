@@ -27,7 +27,7 @@ LATEXMK_BIN := $(if $(wildcard $(TEXBIN)/latexmk),$(TEXBIN)/latexmk,latexmk)
 # Upstream's .latexmkrc sets $pdf_mode = 5, i.e. xelatex.
 LATEXMK := $(LATEXMK_BIN) -xelatex -interaction=nonstopmode -halt-on-error
 
-.PHONY: help carve seed diff figures pdf section markdown html serve check clean distclean doctor
+.PHONY: help carve seed diff figures figures-svg pdf section markdown html serve check clean distclean doctor
 
 help:
 	@echo "carve     regenerate book/original/ from the pinned submodule"
@@ -104,6 +104,34 @@ section:
 	$(LATEXMK) -outdir=$(OUT_DIR) \
 		-usepretex="\newcommand{\buildSection}{$(SECTION)}" $(BOOK)
 
+# --- figures for the web edition -------------------------------------------
+#
+# The book's own figures are tikzpictures, which pandoc cannot see at all -- it
+# silently produced an empty figure box. Each one is rendered to SVG here so the
+# HTML edition gets the same picture from the same single source.
+#
+# xelatex emits .xdv rather than .dvi, so the figure is taken to PDF first and
+# dvisvgm reads that; --font-format=woff embeds the glyphs, so the SVG does not
+# depend on the reader having the book's fonts.
+
+FIG_SRCS := $(shell find book/figures -name '*.tex' 2>/dev/null)
+FIG_SVGS := $(patsubst book/figures/%.tex,build/figures/%.svg,$(FIG_SRCS))
+
+build/figures/%.svg: book/figures/%.tex tools/figures/standalone-preamble.tex
+	@mkdir -p $(dir $@)
+	@printf '\\documentclass[border=4pt]{standalone}\n' > $@.tex
+	@cat tools/figures/standalone-preamble.tex >> $@.tex
+	@printf '\\begin{document}\n' >> $@.tex
+	@cat $< >> $@.tex
+	@printf '\n\\end{document}\n' >> $@.tex
+	@$(TEXBIN)/xelatex -interaction=batchmode -halt-on-error \
+		-output-directory=$(dir $@) $@.tex >/dev/null
+	@$(TEXBIN)/dvisvgm --pdf --font-format=woff --output=$@ $@.pdf >/dev/null 2>&1
+	@rm -f $@.tex $@.pdf $@.log $@.aux
+	@echo "rendered $@"
+
+figures-svg: $(FIG_SVGS)
+
 # --- html ------------------------------------------------------------------
 #
 # The .tex sources stay the single source of truth; HTML is generated. Two
@@ -119,14 +147,12 @@ section:
 HTML_OUT  := $(OUT_DIR)/book.html
 SECTIONS  := $(shell sed -n 's/^\\input{\(book\/[^}]*\)}.*/\1/p' contents.tex)
 
-$(OUT_DIR)/book.md: contents.tex $(SECTIONS) tools/pandoc/shim.tex
+$(OUT_DIR)/book.md: contents.tex $(SECTIONS) $(UPSTREAM)/backmatter/references.tex tools/pandoc/shim.tex tools/pandoc/preprocess.py
 	@mkdir -p $(OUT_DIR)
-	@cat tools/pandoc/shim.tex > $@.tex
-	@for f in $(SECTIONS); do \
-		sed -E 's/\\begin\{(codeBlock|compactCodeBlock)\}/\\begin{verbatim}/; \
-		        s/\\end\{(codeBlock|compactCodeBlock)\}/\\end{verbatim}/' $$f >> $@.tex; \
-	done
-	pandoc -f latex -t gfm --lua-filter=tools/pandoc/sicp.lua -o $@ $@.tex
+	uv run python tools/pandoc/preprocess.py $(SECTIONS) \
+		$(UPSTREAM)/backmatter/references.tex \
+		--shim tools/pandoc/shim.tex --out $@.tex
+	pandoc -f latex -t gfm+tex_math_dollars --lua-filter=tools/pandoc/sicp.lua -o $@ $@.tex
 	@rm -f $@.tex
 
 markdown: $(OUT_DIR)/book.md
@@ -135,12 +161,14 @@ markdown: $(OUT_DIR)/book.md
 # --include-after-body puts the script INSIDE <body>. Appending it to the file
 # instead leaves it after </html>, where it is a parse error the browser has to
 # recover from.
-html: $(OUT_DIR)/book.md tools/html/copybutton.js tools/html/book.css tools/html/after-body.html
-	pandoc -f gfm -t html5 --standalone --toc --section-divs \
+html: $(OUT_DIR)/book.md $(FIG_SVGS) tools/html/copybutton.js tools/html/book.css tools/html/after-body.html
+	pandoc -f gfm+tex_math_dollars -t html5 --standalone --toc --section-divs \
+		--mathml \
 		--metadata title="SICP: A Python Translation" \
 		--css book.css --include-after-body=tools/html/after-body.html \
 		$(OUT_DIR)/book.md -o $(HTML_OUT)
 	@cp tools/html/book.css tools/html/copybutton.js $(OUT_DIR)/
+	@mkdir -p $(OUT_DIR)/figures && cp -R build/figures/* $(OUT_DIR)/figures/
 	@echo "wrote $(HTML_OUT) -- open with 'make serve' rather than file:// if the"
 	@echo "  clipboard API is unavailable in your browser"
 

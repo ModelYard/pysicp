@@ -70,5 +70,8 @@ submodule itself is never modified.
 - **Inline code**: `\code{...}` for naming things in prose (TeX specials must be
   escaped); `\pycode{...}` for real Python where highlighting earns its keep (no
   escaping needed except `%`, and `~` is currently swallowed).
+- **Predicates are named `is_...`** — Scheme's trailing `?` (`good-enough?`) has
+  no Python spelling; `is_good_enough` is the nearest idiom and reads the same
+  in prose.
 - **Translation seams** are marked with `buildFromScarcity`, `revealTheSurface`,
   `departure` or `notTaste` — a fixed vocabulary, so the notes stay greppable.

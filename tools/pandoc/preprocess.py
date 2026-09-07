@@ -1,0 +1,174 @@
+"""Prepare the book's LaTeX for pandoc, and refuse to proceed if it would lose
+content.
+
+Pandoc's LaTeX reader silently DELETES any macro it does not know, along with
+that macro's arguments, and exits successfully. The result is not a visible gap
+but a plausible-looking sentence with the content removed:
+
+    "if you write \\pycode{-2 ** 2} you get \\pycode{-4}"
+        -> "if you write you get"
+
+    \\chapterQuote{<the quotation>}{John Locke}{...}{1690}
+        -> "John Locke An Essay Concerning Human Understanding ... 1690"
+
+Both of those shipped before anyone noticed. The audit below turns that class of
+failure into a build error naming the offending macro.
+"""
+
+from __future__ import annotations
+
+import argparse
+import re
+import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+
+# Environments rewritten to verbatim. Pandoc handles verbatim lexically, so this
+# cannot be done with a macro definition in the shim -- and without it every
+# code block loses its line structure.
+VERBATIM_ENVS = (
+    "codeBlock",
+    "compactCodeBlock",
+    "example",
+    "compactExample",
+    "pythonBlock",
+)
+
+# Constructs that need no shim because other machinery already handles them.
+HANDLED_ELSEWHERE = {
+    *VERBATIM_ENVS,
+    "imageFigure",  # rebuilt as <figure> by sicp.lua
+    "pythonFile",  # expanded below
+    "syntaxForm",  # rewritten above
+    "meta",  # rewritten above
+    "syntaxform",  # emitted by syntax_form, consumed by sicp.lua
+}
+
+# Page-layout commands that carry no content, so dropping them loses nothing.
+HARMLESS = {
+    "cleardoublepage",
+    "clearpage",
+    "newpage",
+    "noindent",
+    "phantomsection",
+    "vspace",
+    "bigskip",
+    "medskip",
+    "smallskip",
+    "needspace",
+    "par",
+}
+
+FIGURE_INPUT = re.compile(r"\\input\{book/figures/([^}]*)\}")
+PYTHON_FILE = re.compile(r"\\pythonFile(?:\[[^\]]*\])?\{([^}]*)\}")
+META = re.compile(r"\\meta\{([^}]*)\}")
+SYNTAX_FORM = re.compile(r"\\begin\{syntaxForm\}(.*?)\\end\{syntaxForm\}", re.DOTALL)
+# A bibliography entry marks itself with \phantomsection\label{Stoy 1977}.
+# Pandoc ignores a bare \label, so every citation in the book would land
+# nowhere; \hypertarget it does understand, and turns into a real anchor.
+BIB_LABEL = re.compile(r"\\phantomsection\s*\\label\{([^}]*)\}")
+
+
+def expand_python_file(match: re.Match[str]) -> str:
+    """Inline a real .py file, so book code reaches the web edition."""
+    path = REPO_ROOT / match.group(1)
+    if not path.exists():
+        raise SystemExit(f"error: \\pythonFile references a missing file: {path}")
+    return "\\begin{verbatim}\n" + path.read_text().rstrip("\n") + "\n\\end{verbatim}"
+
+
+def syntax_form(match: re.Match[str]) -> str:
+    """A syntax skeleton is neither Python nor Scheme but grammar notation.
+
+    In print the metavariables are typeset by \\meta; here they become literal
+    angle brackets inside a verbatim block, tagged so the web edition can style
+    them and so the copy button knows the block is not something to type.
+    """
+    body = META.sub(r"<\1>", match.group(1)).strip("\n")
+    # Pandoc turns an unknown environment into a Div carrying its name, which is
+    # how sicp.lua recognises the block after the verbatim rewrite has erased
+    # every other trace of what it was.
+    return (
+        "\\begin{syntaxform}\n\\begin{verbatim}\n"
+        + body
+        + "\n\\end{verbatim}\n\\end{syntaxform}"
+    )
+
+
+def anchor(label: str) -> str:
+    """Match the slug sicp.lua derives, so links and targets agree."""
+    return re.sub(r"[^0-9A-Za-z]+", "-", label).strip("-").lower()
+
+
+def transform(text: str) -> str:
+    text = BIB_LABEL.sub(lambda m: "\\hypertarget{" + anchor(m.group(1)) + "}{}", text)
+    text = SYNTAX_FORM.sub(syntax_form, text)
+    for env in VERBATIM_ENVS:
+        text = text.replace(f"\\begin{{{env}}}", "\\begin{verbatim}")
+        text = text.replace(f"\\end{{{env}}}", "\\end{verbatim}")
+    text = PYTHON_FILE.sub(expand_python_file, text)
+    text = FIGURE_INPUT.sub(r"\\includegraphics{figures/\1.svg}", text)
+    return text
+
+
+def macros_defined_in(directory: Path) -> set[str]:
+    found: set[str] = set()
+    for path in directory.rglob("*.tex"):
+        body = path.read_text()
+        found |= set(
+            re.findall(r"\\(?:new|renew|provide)command\*?\{\\([a-zA-Z]+)\}", body)
+        )
+        found |= set(re.findall(r"\\(?:lst)?newenvironment\*?\{([a-zA-Z]+)\}", body))
+        found |= set(re.findall(r"\\NewDocumentCommand\{?\\([a-zA-Z]+)\}?", body))
+        found |= set(re.findall(r"\\NewDocumentEnvironment\{([a-zA-Z]+)\}", body))
+    return found
+
+
+def audit(sources: list[Path], shim: Path) -> list[str]:
+    """Return the names of constructs pandoc would silently discard."""
+    used: set[str] = set()
+    for path in sources:
+        body = path.read_text()
+        used |= set(re.findall(r"\\([a-zA-Z]+)", body))
+        used |= set(re.findall(r"\\begin\{([a-zA-Z]+)\}", body))
+
+    custom = macros_defined_in(REPO_ROOT / "vendor/sicp-latex/preamble")
+    custom |= macros_defined_in(REPO_ROOT / "book/preamble")
+
+    shimmed = set(
+        re.findall(
+            r"\\new(?:command|environment)\*?\{?\\?([a-zA-Z]+)\}?", shim.read_text()
+        )
+    )
+
+    return sorted((used & custom) - shimmed - HANDLED_ELSEWHERE - HARMLESS)
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("sources", nargs="+", type=Path)
+    parser.add_argument("--shim", type=Path, required=True)
+    parser.add_argument("--out", type=Path, required=True)
+    args = parser.parse_args(argv)
+
+    unshimmed = audit(args.sources, args.shim)
+    if unshimmed:
+        print(
+            "error: these constructs are defined in a preamble pandoc never sees,\n"
+            "       so it would delete them and their contents WITHOUT WARNING:\n",
+            file=sys.stderr,
+        )
+        for name in unshimmed:
+            print(f"           \\{name}", file=sys.stderr)
+        print(f"\n       Define them in {args.shim} and rebuild.", file=sys.stderr)
+        return 1
+
+    parts = [args.shim.read_text()]
+    parts += [transform(path.read_text()) for path in args.sources]
+    args.out.write_text("\n".join(parts))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

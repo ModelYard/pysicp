@@ -73,6 +73,11 @@
     if (pre.querySelector('.copy-button')) return;
     var code = pre.querySelector('code') || pre;
 
+    // Syntax skeletons are grammar notation, not code: there is nothing here a
+    // reader would type into an interpreter. (Pandoc keeps only the first class
+    // on a code block, so this keys on that rather than a separate marker.)
+    if (/\b(syntax|nocopy)\b/.test(pre.className + ' ' + (code.className || ''))) return;
+
     // A block that is nothing but interpreter output has nothing to type, so
     // it gets no button rather than a button that copies an empty string.
     if (copyableFromElement(code).trim() === '') return;

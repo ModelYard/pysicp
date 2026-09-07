@@ -1,0 +1,14 @@
+% Preamble for rendering a single figure on its own, for the HTML build.
+%
+% The figure sources under book/figures/ are tikzpictures with no preamble of
+% their own, so they can be \input straight into the book. To turn one into an
+% SVG it needs a document around it; this is that document's preamble, kept
+% deliberately close to the book's so a figure looks the same in both editions.
+\usepackage{tikz}
+\usepackage{newcomputermodern}
+
+% Colours the book's preamble defines, repeated here so a figure may use them.
+\usepackage{xcolor}
+\definecolor{DeepGray}{HTML}{464646}
+\definecolor{MediumGray}{HTML}{686868}
+\definecolor{LightGray}{HTML}{8B8B8B}

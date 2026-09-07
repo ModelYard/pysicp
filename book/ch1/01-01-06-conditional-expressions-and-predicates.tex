@@ -1,0 +1,354 @@
+\subsection{Conditional Expressions and Predicates}
+\label{Section 1.1.6}
+
+The expressive power of the class of procedures that we can define at this
+point is very limited, because we have no way to make tests and to perform
+different operations depending on the result of a test. For instance, we
+cannot define a procedure that computes the absolute value of a number by
+testing whether the number is positive, negative, or zero and taking different
+actions in the different cases according to the rule
+
+$$
+ |x| = \left\{ \begin{array}{r@{\quad \mathrm{if} \quad}l}
+        x  &  x > 0, \\
+	0  &  x = 0, \\
+  \!\! -x  &  x < 0. \end{array} \right.
+$$
+
+This construct is called a \newterm{case analysis}.  Lisp notates it with a
+special form called \code{cond}, which takes a list of cases and works down it
+until one applies.  Python has no form of quite that shape, but it has a
+\newterm{conditional expression}, which handles two cases, and a case analysis
+of any length can be built by nesting one inside another:
+
+\begin{codeBlock}
+>>> def abs(x):
+...     return x if x > 0 else (0 if x == 0 else -x)
+\end{codeBlock}
+
+\noindent
+The general form of a conditional expression is
+
+\begin{syntaxForm}
+\meta{e}\textsubscript{1} if \meta{p}\textsubscript{1} else \meta{alternative}
+\end{syntaxForm}
+
+\noindent
+and a case analysis of \meta{n} cases is written by putting another conditional
+expression in the \meta{alternative} position, and so on down:
+
+\begin{syntaxForm}
+\meta{e}\textsubscript{1} if \meta{p}\textsubscript{1} else (
+    \meta{e}\textsubscript{2} if \meta{p}\textsubscript{2} else (
+        \dots
+        \meta{e}\textsubscript{n} if \meta{p}\textsubscript{n} else \meta{e}\textsubscript{n+1}))
+\end{syntaxForm}
+
+\noindent
+The pairs \meta{p} and \meta{e} are called \newterm{clauses}, and it must be
+admitted that Python's way of writing them is the uglier of the two.  Lisp
+lists the clauses one after another and they line up; Python nests them, and
+the parentheses and indentation pile up on the right as the analysis grows.  We
+will meet a more comfortable way to write this in a moment.
+
+The first expression in each pair is a \newterm{predicate}---that is, an
+expression whose value is interpreted as either true or false.\footnote{Both
+languages accept any value where a predicate is expected, but they disagree
+about which values count as false, and the disagreement is worth knowing early.
+Scheme has two distinguished values, \code{\#t} and \code{\#f}, and treats
+\code{\#f} as false and \textit{everything else}---including \code{0} and the
+empty list---as true.  Python is more generous about what counts as false:
+\code{False} and \code{None}, any number equal to zero, and any empty
+collection (\code{''}, \code{[]}, \code{\{\}}, \code{()}) are all false, and
+everything else is true.  The case to keep in mind is \code{0}, which is true
+in Scheme and false in Python.  A type may decide the question for itself, and
+we will see how in \link{Chapter 2}.}
+
+Conditional expressions are evaluated as follows.  The predicate \( \langle{p_1}\rangle \) is
+evaluated first.  If its value is false, then \( \langle{p_2}\rangle \) is evaluated.  If
+\( \langle{p_2}\rangle \)'s value is also false, then \( \langle{p_3}\rangle \) is evaluated.  This process
+continues until a predicate is found whose value is true, in which case the
+interpreter returns the value of the corresponding \newterm{consequent
+expression} \( \langle{e}\rangle \) of the clause as the value of the conditional expression.
+If none of the \( \langle{p}\rangle \)'s is found to be true, the value of the \code{cond} is
+undefined.
+
+The word \newterm{predicate} is used for procedures that return true or false,
+as well as for expressions that evaluate to true or false.  The absolute-value
+procedure \code{abs} makes use of the primitive predicates \code{>}, \code{<},
+and \code{==}.\footnote{\code{abs} also uses the ``minus'' operator \code{-},
+which, when used with a single operand, as in \code{-x}, indicates
+negation.  Note also that \code{abs} is built into Python already; we define it
+here because the definition is the point, not the procedure.} These take two
+numbers as arguments and test whether the first number is, respectively,
+greater than, less than, or equal to the second number, returning true or false
+accordingly.
+
+The more comfortable way promised above is not an expression at all.  Python
+has a case analysis in the form of a \newterm{statement}, written with
+\code{if}, \code{elif} and \code{else}, and it lays its clauses out one after
+another as Lisp does:
+
+\begin{codeBlock}
+>>> def abs(x):
+...     if x > 0:
+...         return x
+...     elif x == 0:
+...         return 0
+...     else:
+...         return -x
+\end{codeBlock}
+
+\noindent
+This is how such a thing is ordinarily written in Python, and it is what we
+will use from here on.  Note what has been given up to get it.  The conditional
+expression \emph{has} a value, and can therefore appear anywhere a value can:
+as an operand, as an argument, in the middle of a larger expression.  The
+statement form has no value at all, and the branches must say \code{return}
+explicitly to hand one back.  This is the same divide we met in
+\link{Section 1.1.3}, and it will keep turning up: Python often gives us a
+statement where Lisp gives us an expression, and the statement is more
+comfortable to read and less free to compose.
+
+\noindent
+The absolute-value procedure could also be expressed in English as ``If
+\( x \) is less than zero return \( -x; \) otherwise return \( x \),'' which in
+Python is
+
+\begin{codeBlock}
+>>> def abs(x):
+...     if x < 0:
+...         return -x
+...     else:
+...         return x
+\end{codeBlock}
+
+\noindent
+\code{else} names the clause taken whenever all the previous ones have been
+bypassed.  Here there are precisely two cases, which is the shape the
+conditional expression was made for; written that way it is
+
+\begin{codeBlock}
+>>> def abs(x):
+...     return -x if x < 0 else x
+\end{codeBlock}
+
+\noindent
+The general form of a conditional expression is
+
+\begin{syntaxForm}
+\meta{consequent} if \meta{predicate} else \meta{alternative}
+\end{syntaxForm}
+
+\noindent
+Note that the predicate is written in the middle, between the two things it
+chooses among, where Lisp writes it first.  To evaluate a conditional
+expression, the interpreter starts by evaluating the \meta{predicate}.  If the
+\meta{predicate} evaluates to a true value, the interpreter then evaluates the
+\meta{consequent} and returns its value.  Otherwise it evaluates the
+\meta{alternative} and returns its value.\footnote{A minor difference between
+the two forms is that a branch of the statement form may be a sequence of
+statements, evaluated in order.  In a conditional expression the
+\meta{consequent} and \meta{alternative} must each be a single expression.}
+
+In addition to primitive predicates such as \code{<}, \code{=}, and \code{>},
+there are logical composition operations, which enable us to construct compound
+predicates. The three most frequently used are these:
+
+\begin{itemize}
+\item
+\meta{e}\textsubscript{1} \code{and} \dots\ \code{and} \meta{e}\textsubscript{n}
+
+The interpreter evaluates the expressions \( \langle{e}\kern0.08em\rangle \) one at a time, in
+left-to-right order.  If any \( \langle{e}\kern0.08em\rangle \) evaluates to false, the value of the
+\code{and} expression is false, and the rest of the \( \langle{e}\kern0.08em\rangle \)'s are not
+evaluated.  If all \( \langle{e}\kern0.08em\rangle \)'s evaluate to true values, the value of the
+\code{and} expression is the value of the last one.
+
+\item
+\meta{e}\textsubscript{1} \code{or} \dots\ \code{or} \meta{e}\textsubscript{n}
+
+The interpreter evaluates the expressions \( \langle{e}\kern0.08em\rangle \) one at a time, in
+left-to-right order.  If any \( \langle{e}\kern0.08em\rangle \) evaluates to a true value, that value is
+returned as the value of the \code{or} expression, and the rest of the
+\( \langle{e}\kern0.08em\rangle \)'s are not evaluated.  If all \( \langle{e}\kern0.08em\rangle \)'s evaluate to false, the value
+of the \code{or} expression is false.
+
+\item
+\code{not} \meta{e}
+
+The value of a \code{not} expression is true when the expression \( \langle{e}\kern0.08em\rangle \)
+evaluates to false, and false otherwise.
+\end{itemize}
+
+\noindent
+Notice that \code{and} and \code{or} are built-in syntax, not procedures,
+because the subexpressions are not necessarily all evaluated.  This is the
+reason, promised in \link{Section 1.1.1}, that they are the two operators for
+which no special method may be written: a procedure receives its arguments
+already evaluated, and these two must be free not to evaluate one at all.
+\code{not} has no such need, and is an ordinary operation.\footnote{One small
+difference from Lisp: \code{and} and \code{or} return one of their operands, as
+Lisp's do---\code{3 and 5} is \code{5}, and \code{0 or 'x'} is \code{'x'}---but
+\code{not} always returns one of the two values \code{True} and \code{False},
+never its operand.}
+
+As an example of how these are used, the condition that a number \( x \) be in
+the range \( 5 < x < 10 \) may be expressed as
+
+\begin{codeBlock}
+>>> x > 5 and x < 10
+\end{codeBlock}
+
+\noindent
+though in this particular case Python offers something better.  Comparisons may
+be \newterm{chained}, and written just as the mathematics is:
+
+\begin{codeBlock}
+>>> 5 < x < 10
+\end{codeBlock}
+
+\noindent
+This is not merely an abbreviation.  \code{5 < x < 10} means \code{5 < x and x <
+10} with the middle operand evaluated only once, which matters when it is
+expensive to compute or has an effect, and it short-circuits in the same way:
+if the first comparison is false the second is never made.  Chains may be of
+any length, and may mix operators, as in \code{0 <= i < len(xs)}.
+
+\noindent
+The original goes on here to define a predicate for ``greater than or equal
+to,'' which in Lisp must be built out of the two primitives it has.  Python
+supplies it, and five others besides, so there is nothing to build.  It is
+worth setting them out, since they are the whole stock of comparisons the
+language has:
+
+\begin{center}
+\begin{tabular}{ll}
+\code{x < y}   & \( x \) is less than \( y \) \\
+\code{x <= y}  & \( x \) is less than or equal to \( y \) \\
+\code{x > y}   & \( x \) is greater than \( y \) \\
+\code{x >= y}  & \( x \) is greater than or equal to \( y \) \\
+\code{x == y}  & \( x \) and \( y \) have the same value \\
+\code{x != y}  & \( x \) and \( y \) do not have the same value \\
+\end{tabular}
+\end{center}
+
+\noindent
+Two of these deserve a remark.  The test for equality is \code{==}, two
+characters, because the single \code{=} was spent on naming in
+\link{Section 1.1.2}; Lisp, which names with \code{define}, had its \code{=}
+free for the purpose.  And \code{!=} is the negation of \code{==}, so that
+\code{x != y} and \code{not (x == y)} ask the same question.
+
+None of these is confined to numbers.  \code{==} compares strings, lists and
+anything else that knows how to compare itself, and the ordering comparisons
+work on any type for which an order has been defined.  How a type comes to
+define these for itself is the subject of \link{Chapter 2}; for the moment we
+are dealing only with numbers, where they mean what they mean in arithmetic.
+
+\begin{exerciseGroup}
+\phantomsection\label{Exercise 1.1}
+\exerciseHeading{Exercise 1.1:} Below is a sequence of expressions.
+What is the result printed by the interpreter in response to each expression?
+Assume that the sequence is to be evaluated in the order in which it is
+presented.
+
+\begin{codeBlock}
+10
+5 + 3 + 4
+9 - 1
+6 / 2
+2 * 4 + (4 - 6)
+a = 3
+b = a + 1
+a + b + a * b
+a == b
+b if b > a and b < a * b else a
+\end{codeBlock}
+
+\begin{codeBlock}
+6 if a == 4 else (6 + 7 + a if b == 4 else 25)
+\end{codeBlock}
+
+\begin{codeBlock}
+2 + (b if b > a else a)
+\end{codeBlock}
+
+\begin{codeBlock}
+(a if a > b else (b if a < b else -1)) * (a + 1)
+\end{codeBlock}
+
+\phantomsection\label{Exercise 1.2}
+\exerciseHeading{Exercise 1.2:} Write the following expression in
+Python:
+
+$$\frac{5 + 4 + (2 - (3 - (6 + \frac{4}{5})))}{3(6 - 2)(2 - 7)}.$$
+
+
+\phantomsection\label{Exercise 1.3}
+\exerciseHeading{Exercise 1.3:} Define a procedure that takes three
+numbers as arguments and returns the sum of the squares of the two larger
+numbers.
+
+\phantomsection\label{Exercise 1.4}
+\exerciseHeading{Exercise 1.4:} Observe that our model of
+evaluation allows for compound expressions whose operators are themselves
+computed.  The original writes the following procedure, in which the operator
+position holds an \code{if} that chooses between \code{+} and \code{-}:
+
+\begin{syntaxForm}
+(define (a-plus-abs-b a b)
+  ((if (> b 0) + -) a b))
+\end{syntaxForm}
+
+\noindent
+Python cannot be written this way.  Its operators are syntax, as we saw in
+\link{Section 1.1.1}, and \code{+} on its own is not an expression that can be
+chosen between and then applied---it is a \code{SyntaxError}.  What Python
+supplies instead is the \code{operator} module, which holds an ordinary
+procedure for each operator: \code{operator.add} does what \code{+} does,
+\code{operator.sub} what \code{-} does, \code{operator.mul}, \code{operator.lt}
+and the rest likewise.  These are values, and so may be chosen between:
+
+\begin{codeBlock}
+>>> import operator
+>>> def a_plus_abs_b(a, b):
+...     return (operator.add if b > 0 else operator.sub)(a, b)
+>>> a_plus_abs_b(3, -4)
+~\textit{7}~
+\end{codeBlock}
+
+\noindent
+Describe the behavior of this procedure.  Then consider what the detour through
+\code{operator} has cost: the original needs no such module, because in Lisp
+\code{+} was already an ordinary name for an ordinary procedure.  We have
+recovered the ability, but not the uniformity that made it unremarkable.
+
+\phantomsection\label{Exercise 1.5}
+\exerciseHeading{Exercise 1.5:} Ben Bitdiddle has invented a test
+to determine whether the interpreter he is faced with is using
+applicative-order evaluation or normal-order evaluation.  He defines the
+following two procedures:
+
+\begin{codeBlock}
+>>> def p():
+...     return p()
+>>> def test(x, y):
+...     return 0 if x == 0 else y
+\end{codeBlock}
+
+Then he evaluates the expression
+
+\begin{codeBlock}
+>>> test(0, p())
+\end{codeBlock}
+
+What behavior will Ben observe with an interpreter that uses applicative-order
+evaluation?  What behavior will he observe with an interpreter that uses
+normal-order evaluation?  Explain your answer.  (Assume that the evaluation
+rule for the conditional expression is the same whether the interpreter is
+using normal or applicative order: The predicate expression is evaluated first,
+and the result determines whether to evaluate the consequent or the alternative
+expression.)
+\end{exerciseGroup}
+

@@ -74,6 +74,7 @@ uv run ruff format src/ tests/         # format
 - Pre-commit runs ruff and mypy on every commit
 - Always use Red/Green TDD when adding new features or fixing bugs.  Validate the test cases with a human before moving on to implementation.  DO that in the chat one by one using an english language descrption of the test case, not code.  Only after the test cases are validated, move on to implementation.
 - Files under `docs/` must be named in all lowercase, 3–5 words, separated by dashes (e.g. `yaml-to-object-graph.md`)
+- Predicates are named `is_...`. Scheme marks them with a trailing `?` (`good-enough?`), which Python cannot spell; `is_good_enough` is the closest idiom and reads the same way in prose. Applies to procedures and to variables holding a truth value
 - Python printed in the book lives in real files under `code/` and is included with `\pythonFile`, never typed inline into `.tex` — book code must be executable and type-checked
 - Every translation seam is marked with `buildFromScarcity`, `revealTheSurface`, or `notTaste`; the vocabulary is fixed so the notes stay greppable
 - Build from the repo root; `vendor/sicp-latex` is on `TEXINPUTS`, so upstream macros and assets resolve without copying

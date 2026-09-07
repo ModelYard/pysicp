@@ -28,6 +28,11 @@
 \definecolor{SchemeLight}{HTML}{000000}
 \lstset{numbers=none}
 
+% Figures of our own are drawn with tikz rather than vendored as images: the
+% source stays text, so it diffs like the rest of the book and needs no
+% conversion step or binary asset.
+\usepackage{tikz}
+
 \input{book/preamble/python}
 \input{book/preamble/translation}
 

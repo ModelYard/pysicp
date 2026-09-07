@@ -58,3 +58,30 @@
 \newcommand{\pythonFile}[2][]{%
   \lstinputlisting[style=pythonStyle,#1]{#2}%
 }
+
+% --- Syntax skeletons ---
+% ------------------------
+%
+% The general form of a construct -- def <name>(<formal parameters>): -- is
+% neither Python nor Scheme but a third thing: grammar notation, in which some
+% parts are literal and some are slots to be filled in.
+%
+% The original writes these inside a listings environment and smuggles the
+% metavariables through the escape character (~\(\langle\)~...), which works in
+% print and is meaningless anywhere else. Here they get an environment of their
+% own, built on alltt rather than listings: alltt keeps the line structure of a
+% verbatim block while still expanding macros, so \meta below is an ordinary
+% command and no escaping is needed.
+\usepackage{alltt}
+
+% A metavariable. Works in prose and inside syntaxForm alike.
+\newcommand{\meta}[1]{\ensuremath{\langle}\textsl{#1}\ensuremath{\rangle}}
+
+\newenvironment{syntaxForm}{%
+  \par\vspace{0.5\baselineskip}%
+  \noindent%
+  \begin{alltt}\small%
+}{%
+  \end{alltt}%
+  \vspace{0.3\baselineskip}%
+}

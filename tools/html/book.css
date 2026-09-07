@@ -23,3 +23,18 @@ pre:hover .copy-button, .copy-button:focus-visible, .copy-button:hover { opacity
    what the user typed; the same distinction is what the copy button uses to
    leave it out. */
 .go { color: var(--muted); font-style: italic; }
+
+/* Figures: image first, caption under it, matching the print edition. */
+.book-figure { margin: 2rem 0; text-align: center; }
+.book-figure img { max-width: 100%; height: auto; }
+.book-figure figcaption { margin-top: 0.6rem; font-size: 0.88em; color: var(--muted); text-align: left; }
+
+/* Chapter epigraphs and other quotations. */
+blockquote { margin: 1.6rem 0 1.6rem 1rem; padding-left: 1.1rem;
+             border-left: 2px solid var(--rule); color: var(--muted); font-style: italic; }
+blockquote em { font-style: normal; }
+
+/* Syntax skeletons: grammar notation, so the metavariables are set apart from
+   the literal text and the block is visibly not a transcript. */
+pre.syntax, pre code.syntax { font-style: normal; }
+pre.syntax { border-left: 2px dashed var(--rule); background: none; }

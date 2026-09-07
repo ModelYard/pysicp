@@ -14,3 +14,38 @@
 \newcommand{\exerciseHeading}[1]{\paragraph{#1}}
 \newcommand{\lettrine}[2]{#1#2}
 \newcommand{\monoItalic}[1]{\emph{\texttt{#1}}}
+
+% Quotation macros. \chapterQuote takes the quote, then the author, source and
+% year -- so an undefined \chapterQuote does not merely vanish: pandoc drops the
+% FIRST argument (the quotation itself) and leaves the attribution behind as
+% ordinary prose, which reads as though the book opened with a stray citation.
+\newcommand{\chapterQuote}[4]{\begin{quote}#1\par\medskip\noindent--- #2, \emph{#3} (#4)\end{quote}}
+\newcommand{\chapterDoubleQuote}[8]{%
+  \begin{quote}#1\par\medskip\noindent--- #2, \emph{#3} (#4)\par\bigskip
+  #5\par\medskip\noindent--- #6, \emph{#7} (#8)\end{quote}}
+\newenvironment{niceQuote}[3]{\begin{quote}}{\par\medskip\noindent\end{quote}}
+\newcommand{\mono}[1]{\texttt{#1}}
+
+% Our own macros (book/preamble/), which pandoc knows nothing about either.
+% \pycode is the one that bites: it is used inside prose, so dropping it turns
+% "if you write \pycode{-2 ** 2} you get \pycode{-4}" into "if you write you
+% get" -- a sentence that still parses and has lost its content.
+\newcommand{\pycode}[1]{\texttt{#1}}
+
+% Inline metavariables in prose.
+% Literal angle brackets rather than \textlangle: pandoc renders the macro to
+% nothing, and the brackets are the notation.
+\newcommand{\meta}[1]{⟨\textsl{#1}⟩}
+
+% Exercises. Upstream's exerciseGroup draws a rule and an "EXERCISES" heading in
+% print; here it becomes a section the web edition can style.
+\newenvironment{exerciseGroup}{\subsubsection*{Exercises}}{}
+
+% Translation notes. Each is a labelled aside in print; here each becomes a
+% blockquote carrying its own heading, so the web edition keeps the label that
+% says which kind of note it is.
+\newenvironment{translationNote}[1]{\begin{quote}\textbf{#1}\par}{\end{quote}}
+\newenvironment{departure}{\begin{translationNote}{Where Python departs from Lisp}}{\end{translationNote}}
+\newenvironment{buildFromScarcity}{\begin{translationNote}{Build from scarcity}}{\end{translationNote}}
+\newenvironment{revealTheSurface}{\begin{translationNote}{Reveal the surface}}{\end{translationNote}}
+\newenvironment{notTaste}{\begin{translationNote}{Fact, not taste}}{\end{translationNote}}
