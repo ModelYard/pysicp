@@ -1,0 +1,42 @@
+% A linear recursive process for computing 6!, used in Section 1.2.1.
+%
+% The substitution trace of the recursive factorial, with the arrow that is the
+% point of the figure: the process expands as the chain of deferred
+% multiplications is built, then contracts as they are performed.
+%
+% The parentheses are not decoration. Multiplication in Python associates to
+% the left, so 6 * 5 * 4 would group as ((6 * 5) * 4) -- a different tree from
+% the one the recursion builds, which is 6 * (5 * (4 * ...)). The substitution
+% produces the nesting shown.
+
+\begin{tikzpicture}[
+  x = 1mm, y = 4.6mm,
+  line/.style = {anchor=west, font=\ttfamily\small, inner sep=0pt},
+]
+
+\node[line] (l1)  at (0,  0) {factorial(6)};
+\node[line]       at (0, -1) {6 * factorial(5)};
+\node[line]       at (0, -2) {6 * (5 * factorial(4))};
+\node[line]       at (0, -3) {6 * (5 * (4 * factorial(3)))};
+\node[line]       at (0, -4) {6 * (5 * (4 * (3 * factorial(2))))};
+\node[line] (mid) at (0, -5) {6 * (5 * (4 * (3 * (2 * factorial(1)))))};
+\node[line]       at (0, -6) {6 * (5 * (4 * (3 * (2 * 1))))};
+\node[line]       at (0, -7) {6 * (5 * (4 * (3 * 2)))};
+\node[line]       at (0, -8) {6 * (5 * (4 * 6))};
+\node[line]       at (0, -9) {6 * (5 * 24)};
+\node[line]       at (0,-10) {6 * 120};
+\node[line] (l12) at (0,-11) {720};
+
+% Out to the right as the process expands, back to the left as it contracts.
+% The path is placed relative to the widest node rather than by guessed
+% coordinates, so it clears the text whatever the font metrics turn out to be.
+\draw[-{Triangle[open, length=1.8mm]}, thin]
+  ([xshift=2mm] l1.east) -- ([xshift=8mm] l1.east);
+\draw[thin]
+  ([xshift=8mm] l1.east)
+    to[out=0, in=90] ([xshift=14mm] mid.east)
+    to[out=270, in=0] ([xshift=8mm] l12.east);
+\draw[-{Triangle[open, length=1.8mm]}, thin]
+  ([xshift=8mm] l12.east) -- ([xshift=2mm] l12.east);
+
+\end{tikzpicture}

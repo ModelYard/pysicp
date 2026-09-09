@@ -1,0 +1,316 @@
+\subsection{Tree Recursion}
+\label{Section 1.2.2}
+
+Another common pattern of computation is called \newterm{tree recursion}.  As
+an example, consider computing the sequence of Fibonacci numbers, in which each
+number is the sum of the preceding two:
+\begin{comment}
+0, 1, 1, 2, 3, 5, 8, 13, 21, \( \dots \)
+\end{comment}
+
+$$ 0,\; 1,\; 1,\; 2,\; 3,\; 5,\; 8,\; 13,\; 21,\; \dots. $$
+
+\noindent
+In general, the Fibonacci numbers can be defined by the rule
+
+$$ {\rm Fib}(n) =
+\begin{cases}
+        \; 0 & {\rm if} \;\; n=0, \\
+	\; 1 & {\rm if} \;\; n=1, \\
+	\; {\rm Fib}(n-1) + {\rm Fib}(n-2) \quad & {\rm otherwise}.
+\end{cases} $$
+
+\noindent
+We can immediately translate this definition into a recursive procedure for
+computing Fibonacci numbers:
+
+\begin{codeBlock}
+>>> def fib(n):
+...     if n == 0:
+...         return 0
+...     elif n == 1:
+...         return 1
+...     else:
+...         return fib(n - 1) + fib(n - 2)
+\end{codeBlock}
+
+\noindent
+Consider the pattern of this computation.  To compute \code{fib(5)}, we
+compute \code{fib(4)} and \code{fib(3)}.  To compute \code{fib(4)}, we
+compute \code{fib(3)} and \code{fib(2)}.  In general, the evolved process
+looks like a tree, as shown in \link{Figure 1.5}.  Notice that the branches
+split into two at each level (except at the bottom); this reflects the fact
+that the \code{fib} procedure calls itself twice each time it is invoked.
+
+This procedure is instructive as a prototypical tree recursion, but it is a
+terrible way to compute Fibonacci numbers because it does so much redundant
+computation.  Notice in \link{Figure 1.5} that the entire computation of
+\code{fib(3)}---almost half the work---is duplicated.  In fact, it is not hard
+to show that the number of times the procedure will compute \code{fib(1)} or
+\code{fib(0)} (the number of leaves in the above tree, in general) is
+precisely Fib(\( n+1 \)).  To get an idea of how bad this is, one can
+show that the value of Fib(\( n \)) grows exponentially with \( n \).  More
+precisely (see \link{Exercise 1.13}), Fib(\( n \)) is the closest integer
+to \( \varphi^n / \sqrt{5} \), where
+
+$$\varphi = \frac{1 + \sqrt{5}}{2} \approx 1.6180 $$
+
+\noindent
+is the \newterm{golden ratio}, which satisfies the equation
+
+$$\varphi^2 = \varphi + 1. $$
+
+
+\begin{imageFigure}{The tree-recursive process generated in computing \code{fib(5)}}
+  \input{book/figures/ch1/fib-tree}
+\end{imageFigure}
+
+\noindent
+Thus, the process uses a number of steps that grows exponentially with the
+input.  On the other hand, the space required grows only linearly with the
+input, because we need keep track only of which nodes are above us in the tree
+at any point in the computation.  In general, the number of steps required by a
+tree-recursive process will be proportional to the number of nodes in the tree,
+while the space required will be proportional to the maximum depth of the tree.
+
+We can also formulate an iterative process for computing the Fibonacci numbers.
+The idea is to use a pair of integers \( a \) and \( b \), initialized to
+Fib(1) = 1 and Fib(0) = 0, and to repeatedly apply the
+simultaneous transformations
+
+$$
+\begin{array}{l@{\;\;\gets\;\;}l}
+  a & a + b, \\
+  b & a.
+\end{array}
+$$
+
+\noindent
+It is not hard to show that, after applying this transformation \( n \) times,
+\( a \) and \( b \) will be equal, respectively, to Fib(\( n+1 \)) and
+Fib(\( n \)).  Thus, we can compute Fibonacci numbers iteratively using
+the procedure
+
+\begin{codeBlock}
+>>> def fib(n):
+...     return fib_iter(1, 0, n)
+
+>>> @tail_recursive
+... def fib_iter(a, b, count):
+...     if count == 0:
+...         return b
+...     else:
+...         return TailCall(fib_iter, a + b, a, count - 1)
+\end{codeBlock}
+
+\noindent
+\begin{departure}
+The original observes that the tree-recursive \code{fib} is inefficient, and
+in Scheme that is the whole of the matter---\code{(fib 100)} is merely a
+computation nobody will wait for.  In Python it is also \newterm{bounded}.  The
+process descends \code{n} levels before the first value comes back, and Python
+keeps a frame for every level, so somewhere around \code{fib(1000)} the
+procedure stops being slow and starts being impossible.
+
+That is a smaller distinction than it sounds, since nobody was going to wait
+for \code{fib(100)} either.  But it is worth noticing that the two resources
+the original is teaching us to count---steps and space---fail in different
+ways here.  Running out of steps means waiting.  Running out of space means an
+error.
+\end{departure}
+
+This second method for computing Fib(\( n \)) is a linear iteration.  The
+difference in number of steps required by the two methods---one linear in
+\( n \), one growing as fast as Fib(\( n \)) itself---is enormous, even for
+small inputs.
+
+One should not conclude from this that tree-recursive processes are useless.
+When we consider processes that operate on hierarchically structured data
+rather than numbers, we will find that tree recursion is a natural and powerful
+tool.\footnote{An example of this was hinted at in \link{Section 1.1.3}. The
+interpreter itself evaluates expressions using a tree-recursive process.} But
+even in numerical operations, tree-recursive processes can be useful in helping
+us to understand and design programs.  For instance, although the first
+\code{fib} procedure is much less efficient than the second one, it is more
+straightforward, being little more than a translation into Lisp of the
+definition of the Fibonacci sequence.  To formulate the iterative algorithm
+required noticing that the computation could be recast as an iteration with
+three state variables.
+
+\subsubsection*{Example: Counting change}
+
+It takes only a bit of cleverness to come up with the iterative Fibonacci
+algorithm.  In contrast, consider the following problem: How many different
+ways can we make change of \$1.00, given half-dollars, quarters, dimes,
+nickels, and pennies?  More generally, can we write a procedure to compute the
+number of ways to change any given amount of money?
+
+This problem has a simple solution as a recursive procedure.  Suppose we think
+of the types of coins available as arranged in some order.  Then the following
+relation holds:
+
+\begin{niceQuote}
+The number of ways to change amount \( a \) using \( n \) kinds of coins equals
+\begin{itemize}
+\item
+the number of ways to change amount \( a \) using all but the first kind of coin,
+plus
+\item
+the number of ways to change amount \( a - d \) using all \( n \) kinds of
+coins, where \( d \) is the denomination of the first kind of coin.
+\end{itemize}
+\end{niceQuote}
+
+\noindent
+To see why this is true, observe that the ways to make change can be divided
+into two groups: those that do not use any of the first kind of coin, and those
+that do.  Therefore, the total number of ways to make change for some amount is
+equal to the number of ways to make change for the amount without using any of
+the first kind of coin, plus the number of ways to make change assuming that we
+do use the first kind of coin.  But the latter number is equal to the number of
+ways to make change for the amount that remains after using a coin of the first
+kind.
+
+Thus, we can recursively reduce the problem of changing a given amount to the
+problem of changing smaller amounts using fewer kinds of coins.  Consider this
+reduction rule carefully, and convince yourself that we can use it to describe
+an algorithm if we specify the following degenerate cases:\footnote{For
+example, work through in detail how the reduction rule applies to the problem
+of making change for 10 cents using pennies and nickels.}
+
+\begin{itemize}
+\item
+If \( a \) is exactly 0, we should count that as 1 way to make change.
+
+\item
+If \( a \) is less than 0, we should count that as 0 ways to make change.
+
+\item
+If \( n \) is 0, we should count that as 0 ways to make change.
+\end{itemize}
+
+\noindent
+We can easily translate this description into a recursive procedure:
+
+\begin{codeBlock}
+>>> def count_change(amount):
+...     return cc(amount, 5)
+
+>>> def cc(amount, kinds_of_coins):
+...     if amount == 0:
+...         return 1
+...     elif amount < 0 or kinds_of_coins == 0:
+...         return 0
+...     else:
+...         return (cc(amount, kinds_of_coins - 1)
+...                 + cc(amount - first_denomination(kinds_of_coins),
+...                      kinds_of_coins))
+
+>>> def first_denomination(kinds_of_coins):
+...     if kinds_of_coins == 1:
+...         return 1
+...     elif kinds_of_coins == 2:
+...         return 5
+...     elif kinds_of_coins == 3:
+...         return 10
+...     elif kinds_of_coins == 4:
+...         return 25
+...     elif kinds_of_coins == 5:
+...         return 50
+\end{codeBlock}
+
+\noindent
+(The \code{first\_denomination} procedure takes as input the number of kinds of
+coins available and returns the denomination of the first kind.  Here we are
+thinking of the coins as arranged in order from largest to smallest, but any
+order would do as well.)  We can now answer our original question about
+changing a dollar:
+
+\begin{codeBlock}
+>>> count_change(100)
+~\textit{292}~
+\end{codeBlock}
+
+\noindent
+\code{count\_change} generates a tree-recursive process with redundancies
+similar to those in our first implementation of \code{fib}.  (It will take
+quite a while for that 292 to be computed.)  On the other hand, it is not
+obvious how to design a better algorithm for computing the result, and we leave
+this problem as a challenge.  The observation that a tree-recursive process may
+be highly inefficient but often easy to specify and understand has led people
+to propose that one could get the best of both worlds by designing a ``smart
+compiler'' that could transform tree-recursive procedures into more efficient
+procedures that compute the same result.\footnote{One approach to coping with
+redundant computations is to arrange matters so that we automatically construct
+a table of values as they are computed.  Each time we are asked to apply the
+procedure to some argument, we first look to see if the value is already stored
+in the table, in which case we avoid performing the redundant computation.
+This strategy, known as \newterm{tabulation} or \newterm{memoization}, can be
+implemented in a straightforward way.  Tabulation can sometimes be used to
+transform processes that require an exponential number of steps (such as
+\code{count\_change}) into processes whose space and time requirements grow
+linearly with the input.  See \link{Exercise 3.27}.
+
+A reader who knows Python will recognise this as \code{functools.cache}, which
+is one line and needs no thought: written above \code{fib}, it takes
+\code{fib(30)} from about 0.05 seconds to about 0.00002.  It is worth being
+precise about what that fixes and what it does not.  The tree of redundant
+calls is gone, so the number of \emph{steps} becomes linear.  The
+\emph{depth} is untouched---the process still descends \code{n} levels before
+it can return anything---so \code{fib(2000)} exhausts the stack whether the
+values are remembered or not.  Memoization buys time at the price of space,
+and space is the resource this process is already short of.  It also needs a
+table that changes as the program runs, which is a larger idea than one line
+suggests, and we will not use it until we have said what changing state costs.}
+
+\begin{exerciseGroup}
+\phantomsection\label{Exercise 1.11}
+\exerciseHeading{Exercise 1.11:} A function \( f \) is defined by
+the rule that
+
+$$
+f(n) =
+\begin{cases}
+\;\; n \quad \text{if \; \( n < 3 \),} \\
+\;\; f(n-1) + 2\kern-0.08em f(n-2) + 3\kern-0.08em f(n-3) \quad \text{if \; \( n \ge 3 \).}
+\end{cases}
+$$
+
+Write a procedure that computes \( f \) by means of a recursive process.  Write a procedure that
+computes \( f \) by means of an iterative process.
+
+\phantomsection\label{Exercise 1.12}
+\exerciseHeading{Exercise 1.12:} The following pattern of numbers
+is called \newterm{Pascal's triangle}.
+
+\begin{example}
+        1
+      1   1
+    1   2   1
+  1   3   3   1
+1   4   6   4   1
+      . . .
+\end{example}
+
+The numbers at the edge of the triangle are all 1, and each number inside the
+triangle is the sum of the two numbers above it.\footnote{The elements of
+Pascal's triangle are called the \newterm{binomial coefficients}, because the
+\( n^{\mathrm{th}} \) row consists of the coefficients of the terms in the expansion of
+\( (x + y)^n \).  This pattern for computing the coefficients appeared in
+Blaise Pascal's 1653 seminal work on probability theory, \textit{Trait\'e du
+triangle arithm\'etique}.  According to \link{Knuth (1973)}, the same pattern appears
+in the \textit{Szu-yuen Y\"u-chien} (``The Precious Mirror of the Four
+Elements''), published by the Chinese mathematician Chu Shih-chieh in 1303, in
+the works of the twelfth-century Persian poet and mathematician Omar Khayyam,
+and in the works of the twelfth-century Hindu mathematician Bh\'ascara
+\'Ach\'arya.} Write a procedure that computes elements of Pascal's triangle by
+means of a recursive process.
+
+\phantomsection\label{Exercise 1.13}
+\exerciseHeading{Exercise 1.13:} Prove that Fib(\( n \)) is
+the closest integer to \( \varphi^n / \sqrt{5} \), where \( \varphi = (1 +
+\sqrt{5}) / 2 \).  Hint: Let \( \psi = (1 - \sqrt{5}) / 2 \).
+Use induction and the definition of the Fibonacci numbers (see \link{Section 1.2.2})
+to prove that \( \text{Fib}(n) = (\varphi^n - \psi^n) / \sqrt{5} \).
+\end{exerciseGroup}
+

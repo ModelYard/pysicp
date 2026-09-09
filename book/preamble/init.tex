@@ -28,10 +28,62 @@
 \definecolor{SchemeLight}{HTML}{000000}
 \lstset{numbers=none}
 
+% --- size of code listings ---
+%
+% Chosen so that a line of 80 characters -- the width the sources are wrapped
+% to -- fits the measure without being broken. The text block is 335.7pt wide
+% and this typeface sets 80 characters in 42pt per point of size, so the
+% largest size that fits is just under 8pt.
+%
+% 7.5pt was arrived at by measurement, not arithmetic: listings sets its fixed
+% columns a little wider than the glyphs, so the size that fits 80 characters
+% is smaller than the width of 80 characters suggests. 7.8pt still broke the
+% longest line in the book; 7.5pt does not.
+%
+% For reference, what upstream's sizes fit, and how many of the book's 433 code
+% lines overflow each:
+%
+%     \small        63 chars    3 lines    (upstream's setting)
+%     \footnotesize 71 chars    1 line
+%     \scriptsize   79 chars    1 line
+%
+% Raise it if the code looks too small: at \footnotesize only one line in the
+% whole book is too wide, and that one would be better rewrapped anyway.
+\newcommand{\codeSize}{\fontsize{7.5}{9}\selectfont}
+\lstset{basicstyle=\ttfamily\codeSize}
+
+% Keywords are set in bold upstream, and bold monospace is wider than regular,
+% so a line of 80 characters containing keywords overflows a measure that fits
+% 80 plain ones. Colour alone distinguishes them well enough, and keeps every
+% character the same width -- which is the property the whole layout rests on.
+\lstset{keywordstyle=\color{SchemeBlue}}
+
+% Upstream's codeBlock sets basicstyle inside the environment, which overrides
+% the \lstset above, so the environments themselves have to be redefined.
+% Otherwise the size set here is silently ignored.
+% \lstnewenvironment refuses to redefine, so the environments are undefined
+% first. (Their bodies are otherwise upstream's, minus the size and colour.)
+\makeatletter
+\@for\@env:={codeBlock,compactCodeBlock}\do{%
+  \expandafter\let\csname\@env\endcsname\relax
+  \expandafter\let\csname end\@env\endcsname\relax
+  \expandafter\let\csname\@env @\endcsname\relax
+}
+\makeatother
+\lstnewenvironment{codeBlock}[1][]{%
+  \upshape%
+  \lstset{basicstyle=\ttfamily\codeSize,#1}%
+}{}
+\lstnewenvironment{compactCodeBlock}[1][]{%
+  \upshape%
+  \lstset{basicstyle=\ttfamily\codeSize,#1}%
+}{}
+
 % Figures of our own are drawn with tikz rather than vendored as images: the
 % source stays text, so it diffs like the rest of the book and needs no
 % conversion step or binary asset.
 \usepackage{tikz}
+\usetikzlibrary{arrows.meta,calc}
 
 \input{book/preamble/python}
 \input{book/preamble/translation}

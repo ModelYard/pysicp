@@ -1,0 +1,162 @@
+% The tree-recursive process generated in computing fib(5), used in Section 1.2.2.
+%
+% Upstream's figure also traces the order in which the process visits the
+% nodes, with a dotted path threading the whole tree, and that is reproduced
+% here: it shows that the process is depth-first -- the whole left subtree is
+% computed before the right is begun -- which is what makes the space
+% requirement the DEPTH of the tree rather than its size.
+%
+% Node positions are the leaves spaced evenly with every parent at the midpoint
+% of its children, which is how upstream's layout is arranged too.
+
+\begin{tikzpicture}[
+  x = 12.2mm, y = -11mm,
+  every node/.style = {font=\ttfamily\footnotesize, inner sep=1.2pt},
+  edge/.style = {draw, thin},
+]
+
+% level 0
+\node (f5)  at (4.3125, 0) {fib(5)};
+% level 1
+\node (f4)  at (2.375, 1) {fib(4)};
+\node (f3b) at (6.25,  1) {fib(3)};
+% level 2
+\node (f3a) at (1.25,  2) {fib(3)};
+\node (f2b) at (3.5,   2) {fib(2)};
+\node (f2c) at (5.5,   2) {fib(2)};
+\node (f1e) at (7,     2) {fib(1)};
+% level 3
+\node (f2a) at (0.5,   3) {fib(2)};
+\node (f1b) at (2,     3) {fib(1)};
+\node (f1c) at (3,     3) {fib(1)};
+\node (f0b) at (4,     3) {fib(0)};
+\node (f1d) at (5,     3) {fib(1)};
+\node (f0c) at (6,     3) {fib(0)};
+% level 4
+\node (f1a) at (0,     4) {fib(1)};
+\node (f0a) at (1,     4) {fib(0)};
+
+% the value each terminal call returns, directly beneath it
+\node (v1e) at (7,     3) {1};
+\node (v1b) at (2,     4) {1};
+\node (v1c) at (3,     4) {1};
+\node (v0b) at (4,     4) {0};
+\node (v1d) at (5,     4) {1};
+\node (v0c) at (6,     4) {0};
+\node (v1a) at (0,     5) {1};
+\node (v0a) at (1,     5) {0};
+
+\foreach \p/\c in {f5/f4, f5/f3b,
+                   f4/f3a, f4/f2b, f3b/f2c, f3b/f1e,
+                   f3a/f2a, f3a/f1b, f2b/f1c, f2b/f0b, f2c/f1d, f2c/f0c,
+                   f2a/f1a, f2a/f0a}
+  \draw[edge] (\p) to[out=-90, in=90] (\c);
+
+\foreach \n/\v in {f1e/v1e, f1b/v1b, f1c/v1c, f0b/v0b,
+                   f1d/v1d, f0c/v0c, f1a/v1a, f0a/v0a}
+  \draw[edge] (\n) -- (\v);
+
+% The order in which the process visits the nodes: down the left of each node,
+% through its children, back up its right. Tracing this contour shows that the
+% process is depth-first -- the whole left subtree is finished before the right
+% is begun -- which is why the space it needs is the DEPTH of the tree and not
+% its size, as the text goes on to say.
+%
+% Generated as an Euler tour of the tree rather than laid out by hand, so it
+% cannot drift out of step with the nodes above.
+\draw[dotted, thin, rounded corners=1.6pt, -{Triangle[open, length=1.4mm]}]
+  (3.873,-0.44)
+  -- (3.873,-0.44)
+  -- (3.873,0.44)
+  -- (1.935,0.56)
+  -- (1.935,1.44)
+  -- (0.81,1.56)
+  -- (0.81,2.44)
+  -- (0.06,2.56)
+  -- (0.06,3.44)
+  -- (-0.44,3.56)
+  -- (-0.44,4.44)
+  -- (-0.44,4.56)
+  -- (-0.44,5.44)
+  -- (0.44,5.44)
+  -- (0.44,4.56)
+  -- (0.44,4.44)
+  -- (0.44,3.56)
+  -- (0.56,3.56)
+  -- (0.56,4.44)
+  -- (0.56,4.56)
+  -- (0.56,5.44)
+  -- (1.44,5.44)
+  -- (1.44,4.56)
+  -- (1.44,4.44)
+  -- (1.44,3.56)
+  -- (0.94,3.44)
+  -- (0.94,2.56)
+  -- (1.56,2.56)
+  -- (1.56,3.44)
+  -- (1.56,3.56)
+  -- (1.56,4.44)
+  -- (2.44,4.44)
+  -- (2.44,3.56)
+  -- (2.44,3.44)
+  -- (2.44,2.56)
+  -- (1.69,2.44)
+  -- (1.69,1.56)
+  -- (3.06,1.56)
+  -- (3.06,2.44)
+  -- (2.56,2.56)
+  -- (2.56,3.44)
+  -- (2.56,3.56)
+  -- (2.56,4.44)
+  -- (3.44,4.44)
+  -- (3.44,3.56)
+  -- (3.44,3.44)
+  -- (3.44,2.56)
+  -- (3.56,2.56)
+  -- (3.56,3.44)
+  -- (3.56,3.56)
+  -- (3.56,4.44)
+  -- (4.44,4.44)
+  -- (4.44,3.56)
+  -- (4.44,3.44)
+  -- (4.44,2.56)
+  -- (3.94,2.44)
+  -- (3.94,1.56)
+  -- (2.815,1.44)
+  -- (2.815,0.56)
+  -- (5.81,0.56)
+  -- (5.81,1.44)
+  -- (5.06,1.56)
+  -- (5.06,2.44)
+  -- (4.56,2.56)
+  -- (4.56,3.44)
+  -- (4.56,3.56)
+  -- (4.56,4.44)
+  -- (5.44,4.44)
+  -- (5.44,3.56)
+  -- (5.44,3.44)
+  -- (5.44,2.56)
+  -- (5.56,2.56)
+  -- (5.56,3.44)
+  -- (5.56,3.56)
+  -- (5.56,4.44)
+  -- (6.44,4.44)
+  -- (6.44,3.56)
+  -- (6.44,3.44)
+  -- (6.44,2.56)
+  -- (5.94,2.44)
+  -- (5.94,1.56)
+  -- (6.56,1.56)
+  -- (6.56,2.44)
+  -- (6.56,2.56)
+  -- (6.56,3.44)
+  -- (7.44,3.44)
+  -- (7.44,2.56)
+  -- (7.44,2.44)
+  -- (7.44,1.56)
+  -- (6.69,1.44)
+  -- (6.69,0.56)
+  -- (4.753,0.44)
+  -- (4.753,-0.44);
+
+\end{tikzpicture}

@@ -5,6 +5,10 @@
 % SVG it needs a document around it; this is that document's preamble, kept
 % deliberately close to the book's so a figure looks the same in both editions.
 \usepackage{tikz}
+% Keep in step with book/preamble/init.tex: a library the book's figures use
+% must be loaded here too, or a figure that compiles in the PDF fails to
+% render for the web edition.
+\usetikzlibrary{arrows.meta,calc}
 \usepackage{newcomputermodern}
 
 % Colours the book's preamble defines, repeated here so a figure may use them.

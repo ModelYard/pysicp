@@ -1,0 +1,36 @@
+% A linear iterative process for computing 6!, used in Section 1.2.1.
+%
+% The companion to factorial-recursive-process.tex, and the contrast between
+% the two is the argument of the section. There the arrow bulges, because the
+% process expands as deferred multiplications accumulate and contracts as they
+% are performed. Here it is square: the process neither grows nor shrinks, and
+% each line is the same size as the last -- three numbers.
+%
+% The arrow is drawn with right angles deliberately, for that reason.
+
+\begin{tikzpicture}[
+  x = 1mm, y = 4.6mm,
+  line/.style = {anchor=west, font=\ttfamily\small, inner sep=0pt},
+]
+
+\node[line] (l1) at (0,  0) {factorial(6)};
+\node[line] (l2) at (0, -1) {fact\_iter(1, 1, 6)};
+\node[line]      at (0, -2) {fact\_iter(1, 2, 6)};
+\node[line]      at (0, -3) {fact\_iter(2, 3, 6)};
+\node[line]      at (0, -4) {fact\_iter(6, 4, 6)};
+\node[line]      at (0, -5) {fact\_iter(24, 5, 6)};
+\node[line]      at (0, -6) {fact\_iter(120, 6, 6)};
+\node[line] (lw) at (0, -7) {fact\_iter(720, 7, 6)};
+\node[line] (l9) at (0, -8) {720};
+
+\draw[-{Triangle[open, length=1.8mm]}, thin]
+  ([xshift=2mm] l1.east) -- ([xshift=8mm] l1.east);
+\draw[thin]
+  ([xshift=8mm] l1.east)
+    -- ([xshift=10mm] lw.east |- l1.east)
+    -- ([xshift=10mm] lw.east |- l9.east)
+    -- ([xshift=8mm] l9.east);
+\draw[-{Triangle[open, length=1.8mm]}, thin]
+  ([xshift=8mm] l9.east) -- ([xshift=2mm] l9.east);
+
+\end{tikzpicture}
