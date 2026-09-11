@@ -1,0 +1,714 @@
+\subsection{Representing Sequences}
+\label{Section 2.2.1}
+
+One of the useful structures we can build with pairs is a
+\newterm{sequence}---an ordered collection of data objects.  There are, of
+course, many ways to represent sequences in terms of pairs.  One particularly
+straightforward representation is illustrated in \link{Figure 2.4}, where the
+sequence 1, 2, 3, 4 is represented as a chain of pairs.  The \code{car} of each
+pair is the corresponding item in the chain, and the \code{cdr} of the pair is
+the next pair in the chain.  The \code{cdr} of the final pair signals the end
+of the sequence by pointing to a distinguished value that is not a pair,
+represented in box-and-pointer diagrams as a diagonal line and in programs as
+the value of the variable \code{nil}.  The entire sequence is constructed by
+nested \code{cons} operations:
+
+\begin{codeBlock}
+(cons 1
+      (cons 2
+            (cons 3
+                  (cons 4 nil))))
+\end{codeBlock}
+
+% figure 2.4
+\begin{imageFigure}{The sequence 1, 2, 3, 4 represented as a chain of pairs.}
+  \includegraphics[width=76mm]{assets/figures/chapter_2/figure_2.4c.pdf}
+\end{imageFigure}
+
+Such a sequence of pairs, formed by nested \code{cons}es, is called a
+\newterm{list}, and Scheme provides a primitive called \code{list} to help in
+constructing lists.  The above sequence could be produced by
+\code{(list 1 2 3 4)}.  In general,
+
+\begin{syntaxForm}
+(list \meta{a1} \meta{a2} ... \meta{an})
+\end{syntaxForm}
+
+\noindent
+is equivalent to
+
+\begin{syntaxForm}
+(cons \meta{a1}
+      (cons \meta{a2}
+            (cons ...
+                  (cons \meta{an}
+                        nil)...)))
+\end{syntaxForm}
+
+\noindent
+\begin{buildFromScarcity}
+Scheme must think of a list this way because the pair is the only compound
+structure it has.  A list is not a thing in its own right; it is a discipline
+for arranging pairs, and the diagram in \link{Figure 2.4} is the whole of the
+idea.
+
+Python need not.  It supplies a sequence of its own as a core structure of the
+language---the \newterm{tuple}---and we have already met it: the pair we built
+in \link{Section 2.1} was a tuple that happened to have two elements.  A tuple
+is written as a comma-separated series of objects, numbers in this case, and it
+may have as many as we like.  So the sequence above is simply
+
+\begin{codeBlock}
+>>> (1, 2, 3, 4)
+(1, 2, 3, 4)
+\end{codeBlock}
+
+\noindent
+with no chain and no terminator, because there is nothing to terminate.  The
+reader may wonder why we do not call this a list.  Python reserves that word:
+its \code{list} is a different type, one whose contents can be changed after it
+is made, and we shall take it up in \link{Chapter 3} when mutability is the
+subject.  Until then a sequence for us is a tuple, and when this book says
+``list'' in the original's sense, a tuple is what we shall build.
+
+We shall keep the chain of pairs all the same.  It is the right picture to have
+in mind when writing a procedure that works through a sequence a piece at a
+time, which is nearly every procedure in this section---a first element and a
+rest, over and over, until there is no rest left.  We simply decline to build
+it.
+\end{buildFromScarcity}
+
+Where Scheme provides a built-in procedure \code{list} for assembling a
+sequence, Python asks only for commas.  There is no constructor to call: string
+the elements together with commas and the sequence is made, so that the means of
+combination is a piece of punctuation rather than a procedure.
+
+Python then prints a tuple as one writes it---the elements separated by commas,
+enclosed in parentheses---so that what comes back on the screen is an expression
+one could type in again.  Thus the data object of \link{Figure 2.4} is printed
+as \code{(1, 2, 3, 4)}:
+
+\begin{codeBlock}
+>>> one_through_four = (1, 2, 3, 4)
+>>> one_through_four
+(1, 2, 3, 4)
+\end{codeBlock}
+
+\noindent
+We can think of \code{[0]} as selecting the first item in the sequence, and of
+\code{[1:]} as selecting the subsequence consisting of all but the first item.
+The first of these we have seen already: it is how \code{numer} reached into a
+rational number in \link{Section 2.1.1}.  The second is new.  Written between
+brackets, a colon asks for a \newterm{slice}---a run of the sequence rather
+than a single element---and \code{[1:]} means ``from element 1 to the end,''
+which is to say everything after the first.  Repeated selections extract the
+second, third, and subsequent items.\footnote{Nested applications of \code{car}
+and \code{cdr} are cumbersome enough to write that Lisp dialects provide
+abbreviations for them---\code{(cadr \meta{arg})} for \code{(car (cdr
+\meta{arg}))}, and so on, each \code{a} standing for a \code{car} and each
+\code{d} for a \code{cdr}.  The names persist because combinations like
+\code{cadr} are pronounceable.  Python needs no such contraction, since
+\code{items[1]} says directly what \code{(cadr items)} says by composition.}
+To make a sequence like the original one but with an additional item at the
+beginning, we join a one-element tuple to it with \code{+}.
+
+\begin{codeBlock}
+>>> one_through_four[0]
+1
+>>> one_through_four[1:]
+(2, 3, 4)
+>>> one_through_four[1:][0]
+2
+>>> (10,) + one_through_four
+(10, 1, 2, 3, 4)
+>>> (5,) + one_through_four
+(5, 1, 2, 3, 4)
+\end{codeBlock}
+
+\noindent
+Note the comma in \code{(10,)}.  As we saw in \link{Section 2.1.1}, it is the
+comma and not the parentheses that makes a tuple, so \code{(10)} would be
+merely the number 10 in brackets and \code{(10) + one\_through\_four} would be
+an error rather than a longer sequence.
+
+\begin{notTaste}
+Throughout this chapter we shall add new elements at the \emph{front} of a
+sequence, as \code{(10,) + one\_through\_four} does, because that is what the
+original's algorithms do and following them is the point.  It should be said
+plainly that this is not how Python is ordinarily written.  A Python programmer
+building up a sequence adds to the end, and there is a reason beyond habit: a
+pair in Scheme can point at an existing list and so \code{cons} costs nothing,
+whereas a tuple cannot share, and joining one to another copies both.  We will
+return to what that costs us in \link{Section 2.2.3}, when we have enough
+procedures written for the cost to be worth measuring.
+\end{notTaste}
+
+The value of \code{nil}, used to terminate the chain of pairs, can be thought
+of as a sequence of no elements, the \newterm{empty list}.  For us it is the
+empty tuple, written \code{()}---a pair of parentheses with nothing between
+them, and the one tuple that needs no comma.\footnote{It is remarkable how much
+energy in the standardization of Lisp dialects was dissipated in arguments that
+are literally over nothing: should \code{nil} be an ordinary name?  Should its
+value be a symbol?  A list?  A pair?  The authors of the original, who had
+endured too many language standardization brawls, preferred to avoid the entire
+issue, and from \link{Section 2.3} onward denote the empty list \code{'()}.
+Python was spared the argument.  \code{()} is a tuple of no elements, and there
+is nothing further to say about it.}
+
+\subsubsection*{List operations}
+
+The use of sequences of elements is accompanied by conventional programming
+techniques for manipulating them by successively taking the rest---what the
+original calls ``\code{cdr}ing down'' a list.  For example, the procedure
+\code{list\_ref} takes as arguments a sequence and a number \( n \) and returns
+the \( n^{\mathrm{th}} \) item of the sequence.  It is customary to number the
+elements beginning with 0.  The method for computing \code{list\_ref} is the
+following:
+
+\begin{itemize}
+\item
+For \( n = 0 \), \code{list\_ref} should return the first element.
+
+\item
+Otherwise, \code{list\_ref} should return the \( (n - 1) \)-st item of the rest
+of the sequence.
+\end{itemize}
+
+\begin{codeBlock}
+>>> @tail_recursive
+... def list_ref(items, n):
+...     if n == 0:
+...         return items[0]
+...     else:
+...         return TailCall(list_ref, items[1:], n - 1)
+
+>>> squares = (1, 4, 9, 16, 25)
+>>> list_ref(squares, 3)
+16
+\end{codeBlock}
+
+\noindent
+\begin{revealTheSurface}
+That procedure walks the sequence one element at a time, and Python has a
+statement for doing exactly that:
+
+\begin{codeBlock}
+>>> def list_ref(items, n):
+...     for index, item in enumerate(items):
+...         if index == n:
+...             return item
+\end{codeBlock}
+
+\noindent
+The \code{for} statement takes each element of a sequence in turn and runs its
+body with the name bound to that element.  Written plainly it would be
+\code{for item in items:}, which gives us the elements but not their positions;
+\code{enumerate} supplies both, handing back the index alongside the element at
+each step, so that we can tell when we have arrived at the one we want.
+
+Python has the whole procedure already, of course.  Selecting an element by
+position is what the brackets are for, and \code{list\_ref} is spelled
+
+\begin{codeBlock}
+>>> squares[3]
+16
+\end{codeBlock}
+
+\noindent
+This is the same notation we used above for \code{[0]}, which was never a
+special case---\code{[0]} is simply \code{list\_ref} with \( n \) fixed at
+zero.  Nor is the slice \code{[1:]} anything new: it is the same brackets asked
+for a run instead of a single element.
+\end{revealTheSurface}
+
+Often we work down the whole sequence, and must be able to tell when nothing is
+left of it.  To aid in this, Scheme provides a primitive predicate \code{null?},
+which tests whether its argument is the empty list.  Python provides no such
+procedure, and needs none.  We can compare against the empty tuple directly and
+write \code{items == ()}; but an empty tuple is itself false, so the ordinary
+way to ask is \code{not items}.\footnote{An empty tuple, an empty string, an
+empty dictionary and the number zero are all false in Python, and their
+non-empty counterparts are true, as is every other number.  This is worth
+knowing well beyond sequences: it is why so many Python conditionals test a
+value directly rather than comparing it with anything.}  The procedure
+\code{length}, which returns the number of items in a sequence, illustrates this
+typical pattern of use:
+
+\begin{codeBlock}
+>>> def length(items):
+...     if not items:
+...         return 0
+...     else:
+...         return 1 + length(items[1:])
+
+>>> odds = (1, 3, 5, 7)
+>>> length(odds)
+4
+\end{codeBlock}
+
+\noindent
+The \code{length} procedure implements a simple recursive plan.  The reduction
+step is:
+
+\begin{itemize}
+\item
+The \code{length} of any sequence is 1 plus the \code{length} of the rest of
+the sequence.
+\end{itemize}
+
+\noindent
+This is applied successively until we reach the base case:
+
+\begin{itemize}
+\item
+The \code{length} of the empty sequence is 0.
+\end{itemize}
+
+\noindent
+We could also compute \code{length} in an iterative style:
+
+\begin{codeBlock}
+>>> def length(items):
+...     @tail_recursive
+...     def length_iter(a, count):
+...         if not a:
+...             return count
+...         else:
+...             return TailCall(length_iter, a[1:], count + 1)
+...     return length_iter(items, 0)
+\end{codeBlock}
+
+\noindent
+\begin{revealTheSurface}
+Or with a \code{for} statement.  Here we want only to count the elements and
+never to look at one, so there is no need to name them:
+
+\begin{codeBlock}
+>>> def length(items):
+...     count = 0
+...     for _ in items:
+...         count = count + 1
+...     return count
+\end{codeBlock}
+
+\noindent
+The underscore is an ordinary name, but by long convention it is the name a
+Python programmer uses for a value that must be received and will not be used.
+Reading it, one knows at once that the body does not care what the elements
+are.
+
+And Python counts sequences already, with the built-in procedure \code{len}:
+
+\begin{codeBlock}
+>>> len(odds)
+4
+\end{codeBlock}
+\end{revealTheSurface}
+
+Another conventional programming technique is to build up an answer while
+working down a sequence, as in the procedure \code{append}, which takes two
+sequences as arguments and combines their elements to make a new one:
+
+\begin{codeBlock}
+>>> append(squares, odds)
+(1, 4, 9, 16, 25, 1, 3, 5, 7)
+>>> append(odds, squares)
+(1, 3, 5, 7, 1, 4, 9, 16, 25)
+\end{codeBlock}
+
+\noindent
+\code{append} is also implemented using a recursive plan.  To \code{append}
+sequences \code{list1} and \code{list2}, do the following:
+
+\begin{itemize}
+\item
+If \code{list1} is the empty sequence, then the result is just \code{list2}.
+
+\item
+Otherwise, \code{append} the rest of \code{list1} and \code{list2}, and join
+the first element of \code{list1} onto the front of the result:
+\end{itemize}
+
+\begin{codeBlock}
+>>> def append(list1, list2):
+...     if not list1:
+...         return list2
+...     else:
+...         return (list1[0],) + append(list1[1:], list2)
+\end{codeBlock}
+
+\noindent
+\begin{revealTheSurface}
+The \code{+} that joins a one-element tuple to the front of another is not
+limited to one element.  It joins any two tuples, which is the whole of
+\code{append}:
+
+\begin{codeBlock}
+>>> squares + odds
+(1, 4, 9, 16, 25, 1, 3, 5, 7)
+\end{codeBlock}
+\end{revealTheSurface}
+
+\begin{exerciseGroup}
+\phantomsection\label{Exercise 2.17}
+\exerciseHeading{Exercise 2.17:} Define a procedure
+\code{last\_pair} that returns the sequence containing only the last element of
+a given (nonempty) sequence:
+
+\begin{codeBlock}
+>>> last_pair((23, 72, 149, 34))
+(34,)
+\end{codeBlock}
+
+Write it twice, once as a recursive procedure and once with a \code{for}
+statement.  Then observe that Python will do it for you: a negative index
+counts from the end, so \code{items[-1]} is the last \emph{element}, \code{34},
+and the slice \code{items[-1:]} is the one-element sequence \code{(34,)} that
+this exercise asks for.  Which of the three would you rather read in six
+months?
+
+\phantomsection\label{Exercise 2.18}
+\exerciseHeading{Exercise 2.18:} Define a procedure \code{reverse}
+that takes a sequence as argument and returns a sequence of the same elements
+in reverse order:
+
+\begin{codeBlock}
+>>> reverse((1, 4, 9, 16, 25))
+(25, 16, 9, 4, 1)
+\end{codeBlock}
+
+Write it as a recursive procedure.  Python has this one too, in two spellings:
+\code{tuple(reversed(items))}, and the slice \code{items[::-1]}, whose third
+number is a step and whose \( -1 \) means ``backwards.''
+
+\phantomsection\label{Exercise 2.19}
+\exerciseHeading{Exercise 2.19:} Consider the change-counting
+program of \link{Section 1.2.2}.  It would be nice to be able to easily change
+the currency used by the program, so that we could compute the number of ways
+to change a British pound, for example.  As the program is written, the
+knowledge of the currency is distributed partly into the procedure
+\code{first\_denomination} and partly into the procedure \code{count\_change}
+(which knows that there are five kinds of U.S. coins).  It would be nicer to be
+able to supply a sequence of coins to be used for making change.
+
+We want to rewrite the procedure \code{cc} so that its second argument is a
+sequence of the values of the coins to use rather than an integer specifying
+which coins to use.  We could then have sequences that defined each kind of
+currency:
+
+\begin{codeBlock}
+>>> us_coins = (50, 25, 10, 5, 1)
+>>> uk_coins = (100, 50, 20, 10, 5, 2, 1, 0.5)
+\end{codeBlock}
+
+We could then call \code{cc} as follows:
+
+\begin{codeBlock}
+>>> cc(100, us_coins)
+292
+\end{codeBlock}
+
+To do this will require changing the program \code{cc} somewhat.  It will still
+have the same form, but it will access its second argument differently, as
+follows:
+
+\begin{codeBlock}
+>>> def cc(amount, coin_values):
+...     if amount == 0:
+...         return 1
+...     elif amount < 0 or is_empty(coin_values):
+...         return 0
+...     else:
+...         return (cc(amount, except_first_denomination(coin_values))
+...                 + cc(amount - first_denomination(coin_values),
+...                      coin_values))
+\end{codeBlock}
+
+Define the procedures \code{first\_denomination},
+\code{except\_first\_denomination}, and \code{is\_empty} in terms of primitive
+operations on sequences.\footnote{The original calls the last of these
+\code{no-more?}.  Scheme marks a predicate with a trailing question mark, which
+Python cannot spell; \code{is\_no\_more} is the literal rendering and reads
+badly, so we have used \code{is\_empty}, which says the same thing.}  Does the
+order of the sequence \code{coin\_values} affect the answer produced by
+\code{cc}?  Why or why not?
+
+\phantomsection\label{Exercise 2.20}
+\exerciseHeading{Exercise 2.20:} The procedures \code{+},
+\code{*}, and \code{list} take arbitrary numbers of arguments.  One way to
+define such procedures in the original is to use \newterm{dotted-tail
+notation}: a parameter list with a dot before the last parameter name
+indicates that the initial parameters (if any) will have as values the initial
+arguments, as usual, but the final parameter's value will be a list of any
+remaining arguments.
+
+\begin{syntaxForm}
+(define (f x y . z) \meta{body})
+(define (g . w) \meta{body})
+\end{syntaxForm}
+
+\noindent
+Python writes the dot as a star, and puts it on the parameter rather than
+before it:
+
+\begin{codeBlock}
+>>> def f(x, y, *z):
+...     return (x, y, z)
+
+>>> f(1, 2, 3, 4, 5, 6)
+(1, 2, (3, 4, 5, 6))
+\end{codeBlock}
+
+\noindent
+Called with two or more arguments, \code{f} binds \code{x} to 1, \code{y} to 2,
+and \code{z} to the tuple \code{(3, 4, 5, 6)}.  Note that inside the body
+\code{z} is an ordinary tuple, and the star does not appear again: it marks the
+parameter when the procedure is defined, and thereafter \code{z} is a sequence
+like any other.  A procedure whose whole parameter list is starred takes zero
+or more arguments:
+
+\begin{codeBlock}
+>>> def g(*w):
+...     return w
+
+>>> g(1, 2, 3, 4, 5, 6)
+(1, 2, 3, 4, 5, 6)
+>>> g()
+()
+\end{codeBlock}
+
+\noindent
+Such a parameter is conventionally named \code{args}, and one reads
+\code{*args} in Python programs constantly.  \code{w} and \code{z} are just
+names, as \code{x} and \code{y} are.
+
+Use this notation to write a procedure \code{same\_parity} that takes one or
+more integers and returns a sequence of all the arguments that have the same
+even-odd parity as the first argument.  For example,
+
+\begin{codeBlock}
+>>> same_parity(1, 2, 3, 4, 5, 6, 7)
+(1, 3, 5, 7)
+>>> same_parity(2, 3, 4, 5, 6, 7)
+(2, 4, 6)
+\end{codeBlock}
+\end{exerciseGroup}
+
+\subsubsection*{Mapping over lists}
+
+One extremely useful operation is to apply some transformation to each element
+in a sequence and generate the sequence of results.  For instance, the
+following procedure scales each number in a sequence by a given factor:
+
+\begin{codeBlock}
+>>> def scale_list(items, factor):
+...     if not items:
+...         return ()
+...     else:
+...         return ((items[0] * factor,)
+...                 + scale_list(items[1:], factor))
+
+>>> scale_list((1, 2, 3, 4, 5), 10)
+(10, 20, 30, 40, 50)
+\end{codeBlock}
+
+\noindent
+We can abstract this general idea and capture it as a common pattern expressed
+as a higher-order procedure, just as in \link{Section 1.3}.  The higher-order
+procedure here is called \code{map}.  \code{map} takes as arguments a procedure
+of one argument and a sequence, and returns a sequence of the results produced
+by applying the procedure to each element:
+
+\begin{codeBlock}
+>>> def map(procedure, items):
+...     if not items:
+...         return ()
+...     else:
+...         return ((procedure(items[0]),)
+...                 + map(procedure, items[1:]))
+
+>>> map(abs, (-10, 2.5, -11.6, 17))
+(10, 2.5, 11.6, 17)
+>>> map(lambda x: x * x, (1, 2, 3, 4))
+(1, 4, 9, 16)
+\end{codeBlock}
+
+\noindent
+\begin{revealTheSurface}
+\code{map} is a built-in procedure in Python, and the definition above shadows
+it---which is why we were able to write it at all.  To see the built-in one
+again we must put our own away, which \code{del} does:
+
+\begin{codeBlock}
+>>> del map
+\end{codeBlock}
+
+\noindent
+The built-in \code{map} differs from ours in two ways.  The first is that it is
+more general, as the original's is: given a procedure of \( n \) arguments and
+\( n \) sequences, it applies the procedure to all the first elements, then all
+the second elements, and so on.
+
+The second is that it does not return a sequence:
+
+\begin{codeBlock}
+>>> map(abs, (-10, 2.5, -11.6, 17))
+<map object at 0x102a4c1f0>
+\end{codeBlock}
+
+\noindent
+What comes back is an object that has not computed anything yet and will
+produce each result only when asked for it---an \newterm{iterator}.  This is
+called being \newterm{lazy}, and it is why nothing was printed: no one has
+asked.  To get a sequence, ask for one, by handing the iterator to
+\code{tuple}:
+
+\begin{codeBlock}
+>>> tuple(map(abs, (-10, 2.5, -11.6, 17)))
+(10, 2.5, 11.6, 17)
+>>> tuple(map(lambda x: x * x, (1, 2, 3, 4)))
+(1, 4, 9, 16)
+>>> tuple(map(lambda x, y: x + 2 * y, (1, 2, 3), (4, 5, 6)))
+(9, 12, 15)
+\end{codeBlock}
+
+\noindent
+Laziness is a real advantage---a map over a very long sequence need never build
+the whole result---and a real trap, which we shall spring deliberately in
+\link{Exercise 2.23}.
+\end{revealTheSurface}
+
+Now we can give a new definition of \code{scale\_list} in terms of \code{map}:
+
+\begin{codeBlock}
+>>> def scale_list(items, factor):
+...     return tuple(map(lambda x: x * factor, items))
+\end{codeBlock}
+
+\noindent
+\code{map} is an important construct, not only because it captures a common
+pattern, but because it establishes a higher level of abstraction in dealing
+with sequences.  In the original definition of \code{scale\_list}, the
+recursive structure of the program draws attention to the element-by-element
+processing of the sequence.  Defining \code{scale\_list} in terms of \code{map}
+suppresses that level of detail and emphasizes that scaling transforms a
+sequence of elements to a sequence of results.  The difference between the two
+definitions is not that the computer is performing a different process (it
+isn't) but that we think about the process differently.  In effect, \code{map}
+helps establish an abstraction barrier that isolates the implementation of
+procedures that transform sequences from the details of how the elements are
+extracted and combined.  Like the barriers shown in \link{Figure 2.1}, this
+abstraction gives us the flexibility to change the low-level details of how
+sequences are implemented, while preserving the conceptual framework of
+operations that transform sequences to sequences.  \link{Section 2.2.3} expands
+on this use of sequences as a framework for organizing programs.
+
+\begin{exerciseGroup}
+\phantomsection\label{Exercise 2.21}
+\exerciseHeading{Exercise 2.21:} The procedure \code{square\_list}
+takes a sequence of numbers as argument and returns a sequence of the squares
+of those numbers.
+
+\begin{codeBlock}
+>>> square_list((1, 2, 3, 4))
+(1, 4, 9, 16)
+\end{codeBlock}
+
+Here are two different definitions of \code{square\_list}.  Complete both of
+them by filling in the missing expressions:
+
+\begin{syntaxForm}
+def square_list(items):
+    if not items:
+        return ()
+    else:
+        return \meta{??} + \meta{??}
+
+def square_list(items):
+    return tuple(map(\meta{??}, \meta{??}))
+\end{syntaxForm}
+
+\phantomsection\label{Exercise 2.22}
+\exerciseHeading{Exercise 2.22:} Louis Reasoner tries to rewrite
+the first \code{square\_list} procedure of \link{Exercise 2.21} so that it
+evolves an iterative process:
+
+\begin{codeBlock}
+>>> def square_list(items):
+...     answer = ()
+...     for item in items:
+...         answer = (square(item),) + answer
+...     return answer
+\end{codeBlock}
+
+Unfortunately, defining \code{square\_list} this way produces the answer in the
+reverse order of the one desired.  Why?
+
+Louis then tries to fix his bug by interchanging the arguments to \code{+}:
+
+\begin{codeBlock}
+>>> def square_list(items):
+...     answer = ()
+...     for item in items:
+...         answer = answer + (square(item),)
+...     return answer
+\end{codeBlock}
+
+This time it works.  Why?
+
+The original poses this exercise in Scheme, where the second version does
+\emph{not} work: interchanging the arguments to \code{cons} does not append to
+a list, it builds a pair whose first element is the accumulated list and whose
+second is a number, and the result is not a list at all.  Explain why the same
+interchange succeeds here.  What is it about \code{+} on tuples that \code{cons}
+on pairs does not do?
+
+Then count the work.  Each version joins two tuples once per element, and
+joining two tuples copies both.  How many element-copies does each version
+perform on a sequence of \( n \) elements?  How many would the original's
+\code{cons} perform?  Keep the answer in mind for \link{Section 2.2.3}.
+
+\phantomsection\label{Exercise 2.23}
+\exerciseHeading{Exercise 2.23:} The procedure \code{for\_each} is
+similar to \code{map}.  It takes as arguments a procedure and a sequence of
+elements.  However, rather than forming a sequence of the results, \code{for\_each}
+just applies the procedure to each of the elements in turn, from left to right.
+The values returned by applying the procedure to the elements are not used at
+all---\code{for\_each} is used with procedures that perform an action, such as
+printing.  For example,
+
+\begin{codeBlock}
+>>> for_each(print, (57, 321, 88))
+57
+321
+88
+\end{codeBlock}
+
+Give a recursive implementation of \code{for\_each}.
+
+Then consider that Python appears to have made the procedure unnecessary, since
+the \code{for} statement does precisely this:
+
+\begin{codeBlock}
+>>> for item in (57, 321, 88):
+...     print(item)
+57
+321
+88
+\end{codeBlock}
+
+Now try it with \code{map}, whose whole business is applying a procedure to
+every element:
+
+\begin{codeBlock}
+>>> map(print, (57, 321, 88))
+<map object at 0x1027ecd80>
+\end{codeBlock}
+
+Nothing is printed.  Explain, and say what \code{tuple(map(print, (57, 321,
+88)))} would print and what it would return.  The original notes that the value
+returned by \code{for\_each} can be something arbitrary; what does the
+\code{for} statement return?  Between them these two questions explain why
+Python keeps \code{map} and \code{for} as separate things, where the original's
+\code{map} and \code{for-each} differ only in whether anyone keeps the results.
+\end{exerciseGroup}

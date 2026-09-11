@@ -1,0 +1,103 @@
+\section{Hierarchical Data and the Closure Property}
+\label{Section 2.2}
+
+\noindent
+Before beginning this section we should say what shape the next few subsections will have,
+because this is the place where the two languages start to truly differ.
+
+The pair is \emph{the} fundamental data structure of Lisp.  Everything compound
+is built from it: a list is a chain of pairs, a tree is a also chain of pairs
+with different nesting, and so is the text of the program itself.  The Python tuple is \emph{a} fundamental data
+structure of Python, but not \emph{the} one---and it is not confined to two
+elements.  The pair we built in \link{Section 2.1} was simply a tuple that
+happened to have two, a special case rather than the foundation.
+
+So where the original constructs a list by chaining pairs together, we shall use
+a tuple directly.  The chain is still worth knowing, and we shall meet it in
+\link{Section 2.2.1}: it is the right way to think about a list while writing a
+recursive procedure, and we shall start by writing our procedures recursively for the
+thought process it promotes.  But we won't build on it, because that is not how Python
+is written.
+
+The introduction to this section is given in the original's terms, pairs and \code{cons} and
+all, and the diagrams are the original's diagrams.  Read \code{(cons a b)} as the
+two-element tuple \code{(a, b)}; the argument being made about it holds for
+tuples of any length.
+
+As we have seen, pairs provide a primitive ``glue'' that we can use to
+construct compound data objects.  \link{Figure 2.2} shows a standard way to
+visualize a pair---in this case, the pair formed by \code{(cons 1 2)}.  In this
+representation, which is called \newterm{box-and-pointer notation}, each object
+is shown as a \newterm{pointer} to a box.  The box for a primitive object
+contains a representation of the object.  For example, the box for a number
+contains a numeral.  The box for a pair is actually a double box, the left part
+containing (a pointer to) the \code{car} of the pair and the right part
+containing the \code{cdr}.
+
+We have already seen that \code{cons} can be used to combine not only numbers
+but pairs as well.  (You made use of this fact, or should have, in doing
+\link{Exercise 2.2} and \link{Exercise 2.3}.)  As a consequence, pairs provide a
+universal building block from which we can construct all sorts of data
+structures.  \link{Figure 2.3} shows two ways to use pairs to combine the
+numbers 1, 2, 3, and 4.
+
+
+% figure 2.2
+\begin{imageFigure}{Box-and-pointer representation of \code{(cons 1 2)}}
+  \includegraphics[width=34mm]{assets/figures/chapter_2/figure_2.2c.pdf}
+\end{imageFigure}
+
+% figure 2.3
+\begin{imageFigure}{Two ways to combine 1, 2, 3, and 4 using pairs.}
+  \includegraphics[width=96mm]{assets/figures/chapter_2/figure_2.3c.pdf}
+\end{imageFigure}
+
+The ability to create pairs whose elements are pairs is the essence of list
+structure's importance as a representational tool.  We refer to this ability as
+the \newterm{closure property} of \code{cons}.  In general, an operation for
+combining data objects satisfies the closure property if the results of
+combining things with that operation can themselves be combined using the same
+operation.\footnote{The use of the word ``closure'' here comes from abstract
+algebra, where a set of elements is said to be closed under an operation if
+applying the operation to elements in the set produces an element that is again
+an element of the set.  The Lisp community also (unfortunately) uses the word
+``closure'' to describe a totally unrelated concept: a closure is an
+implementation technique for representing procedures with free variables.  The
+original declines to use the word in that second sense.  We cannot: it is the
+ordinary word for the thing in Python, and we have used it so already---in
+\link{Section 1.1.8}, where a procedure returned by another kept the bindings it
+was made with, and again in \link{Section 2.1.3}, where we looked at
+\code{\_\_closure\_\_} and read those bindings off directly.  The two senses really
+are unrelated, and the reader must simply carry both.  In this section the word
+means the one from algebra.} Closure
+is the key to power in any means of combination because it permits us to create
+\newterm{hierarchical} structures---structures made up of parts, which
+themselves are made up of parts, and so on.
+
+From the outset of \link{Chapter 1}, we've made essential use of closure in
+dealing with procedures, because all but the very simplest programs rely on the
+fact that the elements of a combination can themselves be combinations.  In
+this section, we take up the consequences of closure for compound data.  We
+describe some conventional techniques for using pairs to represent sequences
+and trees, and we exhibit a graphics language that illustrates closure in a
+vivid way.\footnote{The notion that a means of combination should satisfy
+closure is a straightforward idea.  Unfortunately, the data combiners provided
+in many popular programming languages do not satisfy closure, or make closure
+cumbersome to exploit.  In Fortran or Basic, one typically combines data
+elements by assembling them into arrays---but one cannot form arrays whose
+elements are themselves arrays.  Pascal and C admit structures whose elements
+are structures.  However, this requires that the programmer manipulate pointers
+explicitly, and adhere to the restriction that each field of a structure can
+contain only elements of a prespecified form.  Unlike Lisp with its pairs,
+these languages have no built-in general-purpose glue that makes it easy to
+manipulate compound data in a uniform way.  Python is not among the accused: a
+tuple may contain tuples, and a list lists, without restriction or ceremony, so
+Python satisfies closure as squarely as Lisp does.  This limitation lies behind Alan
+Perlis's comment in his foreword to this book: ``In Pascal the plethora of
+declarable data structures induces a specialization within functions that
+inhibits and penalizes casual cooperation.  It is better to have 100 functions
+operate on one data structure than to have 10 functions operate on 10 data
+structures.''}
+
+
+

@@ -1,0 +1,229 @@
+\subsection{What Is Meant by Data?}
+\label{Section 2.1.3}
+
+We began the rational-number implementation in \link{Section 2.1.1} by
+implementing the rational-number operations \code{add\_rat}, \code{sub\_rat}, and
+so on in terms of three unspecified procedures: \code{make\_rat}, \code{numer},
+and \code{denom}.  At that point, we could think of the operations as being
+defined in terms of data objects---numerators, denominators, and rational
+numbers---whose behavior was specified by the latter three procedures.
+
+But exactly what is meant by \newterm{data}?  It is not enough to say
+``whatever is implemented by the given selectors and constructors.''  Clearly,
+not every arbitrary set of three procedures can serve as an appropriate basis
+for the rational-number implementation.  We need to guarantee that, if we
+construct a rational number \code{x} from a pair of integers \code{n} and
+\code{d}, then extracting the \code{numer} and the \code{denom} of \code{x} and
+dividing them should yield the same result as dividing \code{n} by \code{d}.
+In other words, \code{make\_rat}, \code{numer}, and \code{denom} must satisfy
+the condition that, for any integer \code{n} and any non-zero integer \code{d},
+if \code{x} is \code{make\_rat(n, d)}, then
+
+\[
+\frac{\texttt{numer(x)}}{\texttt{denom(x)}}
+=
+\frac{\texttt{n}}{\texttt{d}}\,.
+\]
+
+In fact, this is the only condition \code{make\_rat}, \code{numer}, and
+\code{denom} must fulfill in order to form a suitable basis for a
+rational-number representation.  In general, we can think of data as defined by
+some collection of selectors and constructors, together with specified
+conditions that these procedures must fulfill in order to be a valid
+representation.\footnote{Surprisingly, this idea is very difficult to formulate
+rigorously. There are two approaches to giving such a formulation.  One,
+pioneered by C. A. R. \link{Hoare (1972)}, is known as the method of \newterm{abstract
+models}.  It formalizes the ``procedures plus conditions'' specification as
+outlined in the rational-number example above.  Note that the condition on the
+rational-number representation was stated in terms of facts about integers
+(equality and division).  In general, abstract models define new kinds of data
+objects in terms of previously defined types of data objects.  Assertions about
+data objects can therefore be checked by reducing them to assertions about
+previously defined data objects.  Another approach, introduced by Zilles at
+\acronym{MIT}, by Goguen, Thatcher, Wagner, and Wright at \acronym{IBM}
+(see \link{Thatcher et al. 1978}),
+and by Guttag at Toronto (see \link{Guttag 1977}), is called
+\newterm{algebraic specification}.  It regards the ``procedures'' as elements
+of an abstract algebraic system whose behavior is specified by axioms that
+correspond to our ``conditions,'' and uses the techniques of abstract algebra
+to check assertions about data objects.  Both methods are surveyed in the paper
+by \link{Liskov and Zilles (1975)}.}
+
+This point of view can serve to define not only ``high-level'' data objects,
+such as rational numbers, but lower-level objects as well.  Consider the notion
+of a pair, which we used in order to define our rational numbers.  We never
+actually said what a pair was, only that the language supplied procedures
+\code{cons}, \code{car}, and \code{cdr} for operating on pairs.  But the only
+thing we need to know about these three operations is that if we glue two
+objects together using \code{cons} we can retrieve the objects using \code{car}
+and \code{cdr}.  That is, the operations satisfy the condition that, for any
+objects \code{x} and \code{y}, if \code{z} is \code{cons(x, y)} then
+\code{car(z)} is \code{x} and \code{cdr(z)} is \code{y}.  We have not troubled
+to write those three procedures until now, having had the tuple to hand: what
+we wrote as \code{(x, y)}, \code{z[0]} and \code{z[1]} is what the original
+writes as \code{cons}, \code{car} and \code{cdr}, and the tuple, like the
+original's pair, is supplied by the language and not by us.
+
+Any triple of procedures that satisfies the above condition can be used as the
+basis for implementing pairs.  This point is illustrated strikingly by the fact
+that we could implement \code{cons}, \code{car}, and \code{cdr} without using
+any data structure at all---without the tuple, or anything else the language
+provides for holding two things together---but only procedures.  Here are the
+definitions:
+
+\begin{codeBlock}
+>>> def cons(x, y):
+...     def dispatch(m):
+...         if m == 0:
+...             return x
+...         elif m == 1:
+...             return y
+...         else:
+...             raise ValueError(f"Argument not 0 or 1: cons {m}")
+...     return dispatch
+
+>>> def car(z):
+...     return z(0)
+
+>>> def cdr(z):
+...     return z(1)
+\end{codeBlock}
+
+\noindent
+This use of procedures corresponds to nothing like our intuitive notion of what
+data should be.  Nevertheless, all we need to do to show that this is a valid
+way to represent pairs is to verify that these procedures satisfy the condition
+given above.
+
+\begin{revealTheSurface}
+Intuition says that a procedure is a piece of code and not a place to keep
+things.  Python will settle the question, because a closure---the word was
+introduced in \link{Section 1.1.8}---carries its captured values about with it,
+and lets you look:
+
+\begin{codeBlock}
+>>> z = cons(1, 2)
+>>> z
+~\textit{<function cons.<locals>.dispatch at 0x104727270>}~
+>>> z.__code__.co_freevars
+~\textit{('x', 'y')}~
+>>> [cell.cell_contents for cell in z.__closure__]
+~\textit{[1, 2]}~
+\end{codeBlock}
+
+\noindent
+\code{co\_freevars} names the variables \code{dispatch} did not define for
+itself and so captured from around it, and \code{\_\_closure\_\_} holds a
+\newterm{cell} for each, which is where the value is actually kept.  The 1 and
+the 2 are in there.  They are not written down anywhere in \code{dispatch}, and
+\code{cons} returned long ago, but a procedure that mentions \code{x} and
+\code{y} cannot be run without them, so they had to be put somewhere and they
+were.
+
+This is the footnote of \link{Section 1.3.4} made visible: giving procedures
+full first-class status, we said there, means reserving storage for a
+procedure's free variables even while the procedure is not executing.  The
+cells are that storage.  A procedure that closes over two values is a thing
+that holds two values, whatever our intuitions about code and data may
+say---and that, rather than any cleverness in the dispatching, is why the
+representation above works at all.
+\end{revealTheSurface}
+
+The subtle point to notice is that the value returned by \code{cons(x, y)} is a
+procedure---namely the internally defined procedure \code{dispatch}, which
+takes one argument and returns either \code{x} or \code{y} depending on whether
+the argument is 0 or 1.  Correspondingly, \code{car(z)} is defined to apply
+\code{z} to 0.  Hence, if \code{z} is the procedure formed by
+\code{cons(x, y)}, then \code{z} applied to 0 will yield \code{x}.  Thus, we
+have shown that \code{car(cons(x, y))} yields \code{x}, as desired.  Similarly,
+\code{cdr(cons(x, y))} applies the procedure returned by \code{cons(x, y)} to
+1, which returns \code{y}.  Therefore, this procedural implementation of pairs
+is a valid implementation, and if we access pairs using only \code{cons},
+\code{car}, and \code{cdr} we cannot distinguish this implementation from one
+that uses ``real'' data structures.
+
+The point of exhibiting the procedural representation of pairs is not that our
+language works this way (Python implements the tuple directly, for efficiency
+reasons, as Lisp systems implement the pair) but that it could work this way.
+The procedural representation, although obscure, is a perfectly adequate way to
+represent pairs, since it fulfills the only conditions that pairs need to
+fulfill.  This example also demonstrates that the ability to manipulate
+procedures as objects automatically provides the ability to represent compound
+data.  This may seem a curiosity now, but procedural representations of data
+will play a central role in our programming repertoire.  This style of
+programming is often called \newterm{message passing}, and we will be using it
+as a basic tool in \link{Chapter 3} when we address the issues of modeling and
+simulation.  A reader who knows Python will suspect they have seen this shape
+before, and will be right; we shall say plainly what it is when we get there.
+
+\begin{exerciseGroup}
+\phantomsection\label{Exercise 2.4}
+\exerciseHeading{Exercise 2.4:} Here is an alternative procedural
+representation of pairs.  For this representation, verify that
+\code{car(cons(x, y))} yields \code{x} for any objects \code{x} and \code{y}.
+
+\begin{codeBlock}
+>>> def cons(x, y):
+...     return lambda m: m(x, y)
+
+>>> def car(z):
+...     return z(lambda p, q: p)
+\end{codeBlock}
+
+What is the corresponding definition of \code{cdr}? (Hint: To verify that this
+works, make use of the substitution model of \link{Section 1.1.5}.)
+
+\phantomsection\label{Exercise 2.5}
+\exerciseHeading{Exercise 2.5:} Show that we can represent pairs of
+nonnegative integers using only numbers and arithmetic operations if we
+represent the pair \( a \) and \( b \) as the integer that is the product \( 2^a 3^b \).
+Give the corresponding definitions of the procedures \code{cons},
+\code{car}, and \code{cdr}.
+
+\phantomsection\label{Exercise 2.6}
+\exerciseHeading{Exercise 2.6:} In case representing pairs as
+procedures wasn't mind-boggling enough, consider that, in a language that can
+manipulate procedures, we can get by without numbers (at least insofar as
+nonnegative integers are concerned) by implementing 0 and the operation of
+adding 1 as
+
+\begin{codeBlock}
+>>> zero = lambda f: lambda x: x
+
+>>> def add_1(n):
+...     return lambda f: lambda x: f(n(f)(x))
+\end{codeBlock}
+
+This representation is known as \newterm{Church numerals}, after its inventor,
+Alonzo Church, the logician who invented the λ-calculus.
+
+A Church numeral is a procedure, so asking the interpreter to show one tells
+you only that it is a procedure.  To see which number it stands for, apply it.
+A numeral applies its argument that many times to a starting value, so give it
+a procedure that adds one and a starting value of zero, and the number itself
+comes back:
+
+\begin{codeBlock}
+>>> def evaluate_church(n):
+...     return n(lambda x: x + 1)(0)
+
+>>> evaluate_church(zero)
+~\textit{0}~
+>>> evaluate_church(add_1(zero))
+~\textit{1}~
+>>> evaluate_church(add_1(add_1(zero)))
+~\textit{2}~
+\end{codeBlock}
+
+\noindent
+Notice that \code{evaluate\_church} does no counting and no repeating of its
+own.  The numeral does all of it: whatever it means to be three is contained in
+the numeral, and the procedure above only has to supply something to do three
+times.
+
+Define \code{one} and \code{two} directly (not in terms of \code{zero} and
+\code{add\_1}).  (Hint: Use substitution to evaluate \code{add\_1(zero)}.)  Give
+a direct definition of an addition procedure (not in terms of repeated
+application of \code{add\_1}).
+\end{exerciseGroup}
+

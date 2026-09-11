@@ -228,7 +228,14 @@ scoping}.\footnote{Lexical scoping dictates that free variables in a procedure
 are taken to refer to bindings made by enclosing procedure definitions; that is,
 they are looked up in the environment in which the procedure was defined. We
 will see how this works in detail in chapter 3 when we study environments and
-the detailed behavior of the interpreter.\label{Footnote 28}}
+the detailed behavior of the interpreter.\label{Footnote 28}}\footnote{Python
+has a name for a procedure that has captured free variables in this way: it is
+called a \newterm{closure}, and one may say that \code{is\_good\_enough} closes
+over \code{x}.  The word is worth knowing because Python's own documentation
+uses it, but it must be handled with care.  \link{Section 2.2} will use
+``closure'' for something else entirely---a property of an operation, borrowed
+from mathematics---and the two senses have nothing to do with each other.  We
+shall say which is meant wherever there is any doubt.}
 
 \begin{codeBlock}
 >>> def sqrt(x):

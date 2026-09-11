@@ -1,0 +1,268 @@
+\subsection{Example: Arithmetic Operations for Rational Numbers}
+\label{Section 2.1.1}
+
+Suppose we want to do arithmetic with rational numbers.  We want to be able to
+add, subtract, multiply, and divide them and to test whether two rational
+numbers are equal.
+
+Let us begin by assuming that we already have a way of constructing a rational
+number from a numerator and a denominator.  We also assume that, given a
+rational number, we have a way of extracting (or selecting) its numerator and
+its denominator.  Let us further assume that the constructor and selectors are
+available as procedures:
+
+\begin{itemize}
+\item
+\code{make\_rat(}\meta{n}\code{, }\meta{d}\code{)}
+returns the rational number whose numerator is the integer
+\meta{n} and whose denominator is the integer \meta{d}.
+
+\item
+\code{numer(}\meta{x}\code{)} returns the numerator of the rational number
+\meta{x}.
+
+\item
+\code{denom(}\meta{x}\code{)} returns the denominator of the rational number
+\meta{x}.
+\end{itemize}
+
+\noindent
+We are using here a powerful strategy of synthesis: \newterm{wishful thinking}.
+We haven't yet said how a rational number is represented, or how the procedures
+\code{numer}, \code{denom}, and \code{make\_rat} should be implemented.  Even
+so, if we did have these three procedures, we could then add, subtract,
+multiply, divide, and test equality by using the following relations:
+
+\begin{align*}
+  \frac{n_1}{d_1} + \frac{n_2}{d_2} 	&= \frac{n_1 d_2 + n_2 d_1}{d_1 d_2}, \\
+  \frac{n_1}{d_1} - \frac{n_2}{d_2} 	&= \frac{n_1 d_2 - n_2 d_1}{d_1 d_2}, \\
+  \frac{n_1}{d_1} \cdot \frac{n_2}{d_2}	&= \frac{n_1 n_2}{d_1 d_2}, \\
+  \frac{{n_1 / d_1}}{{n_2 / d_2}} 	&= \frac{n_1 d_2}{d_1 n_2}, \\
+  \frac{n_1}{d_1} 			&= \frac{n_2}{d_2} \quad
+						{\rm\ if\ and\ only\ if\quad}
+						n_1 d_2 = n_2 d_1.
+\end{align*}
+\noindent
+We can express these rules as procedures:
+
+\begin{codeBlock}
+>>> def add_rat(x, y):
+...     return make_rat(numer(x) * denom(y) + numer(y) * denom(x),
+...                     denom(x) * denom(y))
+
+>>> def sub_rat(x, y):
+...     return make_rat(numer(x) * denom(y) - numer(y) * denom(x),
+...                     denom(x) * denom(y))
+
+>>> def mul_rat(x, y):
+...     return make_rat(numer(x) * numer(y),
+...                     denom(x) * denom(y))
+
+>>> def div_rat(x, y):
+...     return make_rat(numer(x) * denom(y),
+...                     denom(x) * numer(y))
+
+>>> def is_equal_rat(x, y):
+...     return numer(x) * denom(y) == numer(y) * denom(x)
+\end{codeBlock}
+
+Now we have the operations on rational numbers defined in terms of the selector
+and constructor procedures \code{numer}, \code{denom}, and \code{make\_rat}.
+But we haven't yet defined these.  What we need is some way to glue together a
+numerator and a denominator to form a rational number.
+
+\subsubsection*{Pairs}
+
+To enable us to implement the concrete level of our data abstraction, we need a
+way of holding two things together as one.  Python's \newterm{tuple} does this:
+several values kept in order, written one after another with commas between
+them.  It is the comma that makes the tuple; the parentheses usually put round
+it are for grouping, as they are in arithmetic, and may be left out where
+nothing is ambiguous.\footnote{Which is a place where Python will let you write
+something you did not mean.  Since it is the comma and not the brackets that
+does the work, \code{(1)} is merely the number 1 with brackets round it, and a
+tuple of one must be written with a comma you would not otherwise think to
+put---\code{(1,)}.  Worse, a comma left at the end of a line is perfectly legal:
+\code{x = 5,} binds \code{x} to the one-tuple \code{(5,)} and gives no
+sign of having done so, and the mistake is generally discovered some distance
+away, when something expecting a number is handed a tuple.  The empty tuple
+\code{()} is the one case where the brackets do the work, there being no comma
+to write.} A tuple of two is the \newterm{pair} we want.  Given a pair, a part
+comes out by its position---\code{x[0]} is the first, \code{x[1]} the second.
+The square brackets say ``the part at this position,'' and the positions are
+counted from zero.\footnote{The original's language provides pairs through
+three primitive procedures: \code{cons}, which takes two arguments and returns a pair, and
+\code{car} and \code{cdr}, which return the first and second parts.  The name
+\code{cons} stands for ``construct.''  \code{car} and \code{cdr} derive from
+the original implementation of Lisp on the \acronym{IBM 704}, a machine whose
+addressing scheme allowed one to reference the ``address'' and ``decrement''
+parts of a memory location: \code{car} stands for ``Contents of Address part of
+Register'' and \code{cdr} (pronounced ``could-er'') for ``Contents of Decrement
+part of Register.''  We shall meet these three again in
+\link{Section 2.1.3}, under circumstances that make them worth having.}
+
+\begin{codeBlock}
+>>> x = (1, 2)
+>>> x[0]
+~\textit{1}~
+>>> x[1]
+~\textit{2}~
+\end{codeBlock}
+
+\noindent
+Notice that a pair is a data object that can be given a name and manipulated,
+just like a primitive data object.  Two further things are worth noticing at
+once.  The first is that a pair, once made, cannot be altered: there is no way
+to write into \code{x} and change its first part to something else.  This is
+the discipline we said at the start of the chapter we would keep, and here the
+language keeps it for us.  The second is that a pair may hold pairs, and so on:
+
+\begin{codeBlock}
+>>> x = (1, 2)
+>>> y = (3, 4)
+>>> z = (x, y)
+>>> z[0][0]
+~\textit{1}~
+>>> z[1][0]
+~\textit{3}~
+\end{codeBlock}
+
+\noindent
+In \link{Section 2.2} we will see how this ability to combine pairs means that
+pairs can be used as general-purpose building blocks to create all sorts of
+complex data structures.  The single compound-data primitive \newterm{pair} is
+the only glue we need.  Data objects constructed from pairs are called
+\newterm{list-structured} data.
+
+\subsubsection*{Representing rational numbers}
+
+Pairs offer a natural way to complete the rational-number system.  Simply
+represent a rational number as a pair of two integers: a numerator and a
+denominator.  Then \code{make\_rat}, \code{numer}, and \code{denom} are readily
+implemented as follows:\footnote{Another way to define the selectors and
+constructor is to name the existing procedures directly, which in the original
+reads
+
+\begin{compactCodeBlock}
+(define make-rat cons)
+(define numer car)
+(define denom cdr)
+\end{compactCodeBlock}
+
+and is possible because \code{cons}, \code{car} and \code{cdr} are ordinary
+procedures, and a procedure is a value that a name may be bound to.  Python
+manages half of it.  For the selectors there is the \code{operator} module we
+met in \link{Exercise 1.4}, which supplies a procedure for what is ordinarily
+written as syntax: as \code{operator.add} is the procedure behind \code{+}, so
+\code{operator.itemgetter(0)} is the procedure behind \code{x[0]}, and
+\code{numer = operator.itemgetter(0)} is the same move as
+\code{(define numer car)}.  The constructor has no such procedure behind it.
+Making a pair is written \code{(n, d)}, and there is nothing in the language
+that does it---\code{tuple(n, d)} is an error---so one must write
+\code{make\_rat = lambda n, d: (n, d)}, which is not naming an existing
+procedure but writing a new one.  This is the asymmetry of
+\link{Section 1.1.1} again, where \code{+} proved to be syntax rather than a
+name; it holds for building data as much as for arithmetic.
+
+The first of those definitions associates the name \code{make-rat} with the
+value of the expression \code{cons}, which is the primitive procedure that
+constructs pairs; thus \code{make-rat} and \code{cons} become two names for one
+procedure.
+
+Defining selectors in this way is efficient, in either language: instead of
+\code{numer} \emph{calling} something, \code{numer} \emph{is} that something,
+so there is one procedure call where there were two.  On the other hand it
+defeats debugging aids that trace calls or set breakpoints on them: you may
+want to watch \code{numer} being called, but you certainly do not want to watch
+every use of \code{x[0]}.
+
+We have chosen not to use this style of definition in this book.}
+
+\begin{codeBlock}
+>>> def make_rat(n, d):
+...     return (n, d)
+
+>>> def numer(x):
+...     return x[0]
+
+>>> def denom(x):
+...     return x[1]
+\end{codeBlock}
+
+\noindent
+Also, in order to display the results of our computations, we can print
+rational numbers by printing the numerator, a slash, and the
+denominator:\footnote{\code{print} writes its arguments and then starts a new
+line.  The braces in the string mark places where a value is to be put in, and
+the \code{f} before the opening quotation mark is what tells Python to do it;
+such a string is called an \newterm{f-string}.  \code{print} returns no useful
+value, so in the uses of \code{print\_rat} below we show only what it prints,
+not what the interpreter reports as the value of the call.}
+
+\begin{codeBlock}
+>>> def print_rat(x):
+...     print(f"{numer(x)}/{denom(x)}")
+\end{codeBlock}
+
+\noindent
+Now we can try our rational-number procedures:
+
+\begin{codeBlock}
+>>> one_half = make_rat(1, 2)
+>>> print_rat(one_half)
+~\textit{1/2}~
+>>> one_third = make_rat(1, 3)
+>>> print_rat(add_rat(one_half, one_third))
+~\textit{5/6}~
+>>> print_rat(mul_rat(one_half, one_third))
+~\textit{1/6}~
+>>> print_rat(add_rat(one_third, one_third))
+~\textit{6/9}~
+\end{codeBlock}
+
+\noindent
+As the final example shows, our rational-number implementation does not reduce
+rational numbers to lowest terms.  We can remedy this by changing
+\code{make\_rat}. If we have a \code{gcd} procedure like the one in
+\link{Section 1.2.5} that produces the greatest common divisor of two integers, we can
+use \code{gcd} to reduce the numerator and the denominator to lowest terms
+before constructing the pair:\footnote{We import one here rather than write it
+out.  \code{gcd} in the \code{math} module computes the greatest common divisor
+of two integers, which is what its name says and what the procedure of
+\link{Section 1.2.5} does.  Which of the two we use makes no difference to
+anything in this section: \code{make\_rat} is not affected by where its
+\code{gcd} came from, only by what it computes.  That is precisely the black
+box of \link{Section 1.1.8}, and it is worth noticing that the barrier works in
+this direction too---not only hiding our representation from its users, but
+hiding someone else's implementation from us.}
+
+\begin{codeBlock}
+>>> from math import gcd
+
+>>> def make_rat(n, d):
+...     g = gcd(n, d)
+...     return (n // g, d // g)
+\end{codeBlock}
+
+\noindent
+Now we have
+
+\begin{codeBlock}
+>>> print_rat(add_rat(one_third, one_third))
+~\textit{2/3}~
+\end{codeBlock}
+
+\noindent
+as desired.  This modification was accomplished by changing the constructor
+\code{make\_rat} without changing any of the procedures (such as \code{add\_rat}
+and \code{mul\_rat}) that implement the actual operations.
+
+\begin{exerciseGroup}
+\phantomsection\label{Exercise 2.1}
+\exerciseHeading{Exercise 2.1:} Define a better version of
+\code{make\_rat} that handles both positive and negative arguments.
+\code{make\_rat} should normalize the sign so that if the rational number is
+positive, both the numerator and denominator are positive, and if the rational
+number is negative, only the numerator is negative.
+\end{exerciseGroup}
+
