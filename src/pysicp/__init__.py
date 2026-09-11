@@ -8,11 +8,15 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from functools import wraps
+from importlib.metadata import PackageNotFoundError, version
 from typing import Any, NoReturn
 
-__version__ = "0.1.0"
+try:
+    __version__ = version("pysicp")
+except PackageNotFoundError:  # running from a source tree, not installed
+    __version__ = "0.0.0+unknown"
 
-__all__ = ["TailCall", "tail_recursive"]
+__all__ = ["TailCall", "__version__", "tail_recursive"]
 
 _ESCAPED = (
     "a TailCall was used as if it were a value. This happens when the "

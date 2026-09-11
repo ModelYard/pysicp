@@ -4,9 +4,23 @@ SICP rewriten in Python
 
 ## Installation
 
+To work on the book, clone the repository and sync the environment:
+
 ```bash
 uv sync
 ```
+
+To use the `pysicp` package on its own -- the trampolining support the book's
+code depends on -- install it as a dependency:
+
+```bash
+uv add pysicp            # in a uv project
+uv pip install pysicp    # into the active environment
+```
+
+The package ships type information (`py.typed`), so `mypy` and editors see its
+annotations. Only `src/pysicp/` is packaged; the book, its build machinery and
+the vendored upstream source are not part of the distribution.
 
 ## Development
 
