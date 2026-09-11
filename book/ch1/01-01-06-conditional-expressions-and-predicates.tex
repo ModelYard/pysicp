@@ -30,7 +30,7 @@ of any length can be built by nesting one inside another:
 The general form of a conditional expression is
 
 \begin{syntaxForm}
-\meta{e}\textsubscript{1} if \meta{p}\textsubscript{1} else \meta{alternative}
+\meta{e1} if \meta{p1} else \meta{alternative}
 \end{syntaxForm}
 
 \noindent
@@ -38,10 +38,10 @@ and a case analysis of \meta{n} cases is written by putting another conditional
 expression in the \meta{alternative} position, and so on down:
 
 \begin{syntaxForm}
-\meta{e}\textsubscript{1} if \meta{p}\textsubscript{1} else (
-    \meta{e}\textsubscript{2} if \meta{p}\textsubscript{2} else (
-        \dots
-        \meta{e}\textsubscript{n} if \meta{p}\textsubscript{n} else \meta{e}\textsubscript{n+1}))
+\meta{e1} if \meta{p1} else (
+    \meta{e2} if \meta{p2} else (
+        ...
+        \meta{en} if \meta{pn} else \meta{en+1}))
 \end{syntaxForm}
 
 \noindent
@@ -70,8 +70,12 @@ evaluated first.  If its value is false, then \( \langle{p_2}\rangle \) is evalu
 continues until a predicate is found whose value is true, in which case the
 interpreter returns the value of the corresponding \newterm{consequent
 expression} \( \langle{e}\rangle \) of the clause as the value of the conditional expression.
-If none of the \( \langle{p}\rangle \)'s is found to be true, the value of the \code{cond} is
-undefined.
+If none of the \( \langle{p}\rangle \)'s is found to be true---which in the nested
+form above means the last \code{else} has been reached---the value is whatever
+that final alternative supplies.  The original, whose \code{cond} may simply
+run out of clauses, leaves the value undefined in that case; Python's
+conditional expression has no such form, since every \code{if} in it must have
+an \code{else}.
 
 The word \newterm{predicate} is used for procedures that return true or false,
 as well as for expressions that evaluate to true or false.  The absolute-value

@@ -86,6 +86,19 @@ def syntax_form(match: re.Match[str]) -> str:
     them and so the copy button knows the block is not something to type.
     """
     body = META.sub(r"<\1>", match.group(1)).strip("\n")
+    # Everything below becomes a verbatim block, where TeX does not run: a
+    # \textsubscript or \dots that survives this far is printed literally to
+    # the web edition, correct in the PDF and wrong on screen. Fail loudly
+    # instead, the way the preamble audit does.
+    stray = sorted(set(re.findall(r"\\[A-Za-z]+|[$]", body)))
+    if stray:
+        raise SystemExit(
+            "error: syntaxForm bodies become verbatim, so TeX in them reaches\n"
+            "       the web edition as literal source:\n"
+            "           " + "  ".join(stray) + "\n"
+            "       in: " + body.splitlines()[0][:60] + "\n"
+            "       Write the skeleton in plain characters instead."
+        )
     # Pandoc turns an unknown environment into a Div carrying its name, which is
     # how sicp.lua recognises the block after the verbatim rewrite has erased
     # every other trace of what it was.

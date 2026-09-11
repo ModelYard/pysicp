@@ -48,7 +48,7 @@ having to define the auxiliary procedure \code{add\_dx}:
 
 \noindent
 In general, \code{lambda} is used to create procedures in the same way as
-\code{define}, except that no name is specified for the procedure:
+\code{def}, except that no name is specified for the procedure:
 
 \begin{syntaxForm}
 lambda \meta{formal parameters}: \meta{body}
@@ -56,7 +56,7 @@ lambda \meta{formal parameters}: \meta{body}
 
 \noindent
 The resulting procedure is just as much a procedure as one that is created
-using \code{define}.  The only difference is that it has not been associated
+using \code{def}.  The only difference is that it has not been associated
 with any name in the environment.  In fact,
 
 \begin{codeBlock}
@@ -133,20 +133,26 @@ auxiliary procedure to bind the local variables:
 \end{codeBlock}
 
 \noindent
-Of course, we could use a \code{lambda} expression to specify an anonymous
-procedure for binding our local variables.  The body of \code{f} then becomes a
-single call to that procedure:
+That works, but it is a roundabout way of saying something simple.  What we
+want is to give two names values and then use them, and in Python we say so
+directly:
 
 \begin{codeBlock}
 >>> def f(x, y):
-...     return (lambda a, b: x * square(a) + y * b + a * b)(
-...         1 + x * y, 1 - y
-...     )
+...     a = 1 + x * y
+...     b = 1 - y
+...     return x * square(a) + y * b + a * b
 \end{codeBlock}
 
 \noindent
-In Lisp this construct is so useful that there is a special form called
-\code{let} to make it convenient, and the \code{f} procedure would be written
+This is the version to write.  A name introduced by assignment inside a
+procedure is local to that procedure: it is created when the assignment runs
+and it goes away when the procedure returns, so \code{a} and \code{b} here are
+as private to \code{f} as \code{x} and \code{y} are.
+
+Lisp cannot do this, having no assignment of the kind we are using---we shall
+see in \link{Chapter 3} why the original is in no hurry to introduce one---and
+so it reaches instead for a special form called \code{let}:
 
 \begin{syntaxForm}
 (define (f x y)
@@ -158,89 +164,92 @@ In Lisp this construct is so useful that there is a special form called
 \end{syntaxForm}
 
 \noindent
-which can be thought of as saying
+which says: let \meta{var} have the value \meta{exp}, and so on for each pair,
+in the body that follows.
+
+It would be easy to leave the matter there, with two languages that spell the
+same idea differently.  But the original does something more interesting with
+\code{let}, and it is worth following, because it says something about
+assignment that is not obvious.
+
+\begin{buildFromScarcity}
+Where does a local name come from?
+
+The original answers by pointing out that \code{let} is not a new mechanism at
+all.  It is shorthand: a \code{let} expression means exactly
 
 \begin{syntaxForm}
-let \meta{var}\textsubscript{1} have the value \meta{exp}\textsubscript{1} and
-    \meta{var}\textsubscript{2} have the value \meta{exp}\textsubscript{2} and
-    \dots
-    \meta{var}\textsubscript{n} have the value \meta{exp}\textsubscript{n}
-in  \meta{body}
+(lambda \meta{var1}, ..., \meta{varn}: \meta{body})(
+    \meta{exp1}, ..., \meta{expn})
 \end{syntaxForm}
 
 \noindent
-The first part of the \code{let} expression is a list of name-expression pairs.
-When the \code{let} is evaluated, each name is associated with the value of the
-corresponding expression.  The body of the \code{let} is evaluated with these
-names bound as local variables.  The way this happens is that the \code{let}
-expression is interpreted as an alternate syntax for
+a procedure of those names, applied to those values.  Nothing about local
+naming is primitive.  A name is local because it is a \emph{parameter}, and a
+parameter gets its value because the procedure was \emph{applied}.  Binding a
+name and calling a procedure are the same act.
 
-\begin{syntaxForm}
-(lambda \meta{var}\textsubscript{1}, \dots, \meta{var}\textsubscript{n}: \meta{body})(
-    \meta{exp}\textsubscript{1}, \dots, \meta{exp}\textsubscript{n})
-\end{syntaxForm}
-
-\noindent
-No new mechanism is required in the interpreter in order to provide local
-variables. A \code{let} expression is simply syntactic sugar for the
-underlying \code{lambda} application.
-
-\begin{departure}
-Python has no \code{let}.  What it has is the thing \code{let} is sugar
-for---the application above is ordinary Python, and the \code{f} of the
-previous page was written that way---so here the two languages have
-exchanged their usual roles: Python supplies the mechanism and withholds the
-convenience.
-
-In practice a Python programmer writes neither, and simply assigns:
+The \code{f} above can be written that way in Python as easily as in Lisp:
 
 \begin{codeBlock}
 >>> def f(x, y):
-...     a = 1 + x * y
-...     b = 1 - y
-...     return x * square(a) + y * b + a * b
+...     return (lambda a, b: x * square(a) + y * b + a * b)(
+...         1 + x * y, 1 - y
+...     )
 \end{codeBlock}
 
 \noindent
-This is the version to write, and it is what the original itself offers as an
-alternative a page further on.  But it is worth being clear that it is not the
-same thing.  A \code{let} binds a name for the extent of its body and no
-longer; an assignment binds it for the rest of the procedure.  The two points
-the original makes about the scope of \code{let}, which follow immediately,
-are both properties that Python's assignment does \emph{not} have---and both
-of which the lambda application does.  Where the distinction matters, the
-application is available; where it does not, assign.
-\end{departure}
+which nobody would write, and which is not being recommended.  It is worth
+seeing once because it makes a claim that the assignment version conceals:
+\code{a = 1 + x * y} is doing what a procedure call does, and the reason
+\code{a} is local to \code{f} is the same reason \code{x} is.  When we come to
+say what an environment is, in \link{Chapter 3}, and to write an interpreter
+that maintains one, in \link{Chapter 4}, the frame that holds \code{a} will be
+the frame made by calling a procedure---because that is what it always was.
 
-We can see from this equivalence that the scope of a variable specified by a
-\code{let} expression is the body of the \code{let}. This implies that:
+The differences between the two forms are real, and the original sets out two
+of them below.  Both are consequences of the same thing: the lambda form binds
+its names for the extent of one expression, an assignment binds them for the
+rest of the procedure.
+\end{buildFromScarcity}
+
+We can see from this equivalence that the scope of a name bound this way is
+the body of the procedure that binds it -- one expression, and no more. This
+implies two things, and in both the assignment we prefer behaves differently:
 
 \begin{itemize}
 \item
-\code{let} allows one to bind variables as locally as possible to where they
-are to be used.  For example, if the value of \code{x} is 5, the value of the
-expression
+It binds a name as locally as possible to where it is used.  For example, if
+the value of \code{x} is 5, the value of the expression
+
 \begin{codeBlock}
-(lambda x: x + x * 10)(3) + x
+>>> (lambda x: x + x * 10)(3) + x
+~\textit{38}~
 \end{codeBlock}
 
 \noindent
-is 38.  Here, the \code{x} in the body of the \code{let} is 3, so the value of
-the \code{let} expression is 33.  On the other hand, the \code{x} that is the
-second argument to the outermost \code{+} is still 5.
+is 38.  Here, the \code{x} inside the procedure is 3, so that part of the
+expression is 33.  The \code{x} added to it is still 5: the binding lasted for
+one expression and did not disturb what was outside it.  Writing \code{x = 3}
+instead would have replaced the outer \code{x} for the rest of the procedure,
+and the answer would have been 36.
 
 \item
-The variables' values are computed outside the \code{let}.  This matters when
-the expressions that provide the values for the local variables depend upon
-variables having the same names as the local variables themselves.  For
-example, if the value of \code{x} is 2, the expression
+The values are computed outside.  This matters when an expression providing a
+value depends on a name that is about to be rebound.  For example, if the value
+of \code{x} is 2, the expression
+
 \begin{codeBlock}
-(lambda x, y: x * y)(3, x + 2)
+>>> (lambda x, y: x * y)(3, x + 2)
+~\textit{12}~
 \end{codeBlock}
 
 \noindent
-will have the value 12 because, inside the body of the \code{let}, \code{x}
-will be 3 and \code{y} will be 4 (which is the outer \code{x} plus 2).
+has the value 12 because the arguments are worked out before the procedure is
+entered: \code{y} is the \emph{outer} \code{x} plus 2, which is 4, and only
+then does \code{x} become 3.  Written as two assignments, \code{x = 3}
+followed by \code{y = x + 2}, the second would see the new \code{x}, making
+\code{y} equal to 5 and the product 15.
 \end{itemize}
 
 \noindent
