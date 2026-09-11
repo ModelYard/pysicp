@@ -28,6 +28,7 @@ the vendored upstream source are not part of the distribution.
 uv sync --group dev   # install dev dependencies
 pre-commit install    # install git hooks
 
+uv run ipython        # REPL with pysicp importable
 uv run pytest         # run tests
 uv run mypy src/      # type check
 uv run ruff check     # lint
