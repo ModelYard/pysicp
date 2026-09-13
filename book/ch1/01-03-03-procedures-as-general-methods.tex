@@ -231,8 +231,8 @@ of the \code{fixed\_point} procedure.
 it prints the sequence of approximations it generates, using \code{print} as
 shown in \link{Exercise 1.22}.  Then find a
 solution to \( x^x = 1000 \) by finding a fixed point of \( x \mapsto
-\log(1000) / \log(x) \).  (Use Scheme's primitive \code{log}
-procedure, which computes natural logarithms.)  Compare the number of steps
+\log(1000) / \log(x) \).  (Use \code{log} from Python's \code{math} module,
+which computes natural logarithms: \code{from math import log}.)  Compare the number of steps
 this takes with and without average damping.  (Note that you cannot start
 \code{fixed\_point} with a guess of 1, as this would cause division by
 \( \log(1) = 0 \).)
