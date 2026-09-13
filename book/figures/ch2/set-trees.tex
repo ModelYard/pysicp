@@ -1,0 +1,33 @@
+% Three binary trees that all represent the set {1, 3, 5, 7, 9, 11}, for
+% Section 2.3.3. Redrawn from upstream's figure 2.16.
+%
+% Each is given as its entry and the positions of its nodes, so the three can
+% share one drawing routine: a node at (x, y) with an edge up to its parent.
+\begin{tikzpicture}[
+  x = 1mm, y = -1mm,
+  every node/.style = {font=\ttfamily\footnotesize, inner sep=1.2pt},
+]
+
+% left tree: 7 at the root
+\foreach \v/\x/\y in {7/20/0, 3/10/14, 9/30/14, 1/4/28, 5/16/28, 11/26/28}
+  \node (a\v) at (\x, \y) {\v};
+\foreach \p/\c in {a7/a3, a7/a9, a3/a1, a3/a5, a9/a11}
+  \draw[thin] (\p.south) -- (\c.north);
+
+% middle tree: 3 at the root, leaning right
+\begin{scope}[xshift=50mm]
+\foreach \v/\x/\y in {3/16/0, 1/6/14, 7/26/14, 5/20/28, 9/34/28, 11/40/42}
+  \node (b\v) at (\x, \y) {\v};
+\foreach \p/\c in {b3/b1, b3/b7, b7/b5, b7/b9, b9/b11}
+  \draw[thin] (\p.south) -- (\c.north);
+\end{scope}
+
+% right tree: 5 at the root, balanced
+\begin{scope}[xshift=104mm]
+\foreach \v/\x/\y in {5/20/0, 3/10/14, 9/30/14, 1/4/28, 7/24/28, 11/38/28}
+  \node (c\v) at (\x, \y) {\v};
+\foreach \p/\c in {c5/c3, c5/c9, c3/c1, c9/c7, c9/c11}
+  \draw[thin] (\p.south) -- (\c.north);
+\end{scope}
+
+\end{tikzpicture}
