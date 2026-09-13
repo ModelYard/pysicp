@@ -1,0 +1,1021 @@
+\subsection{Sequences as Conventional Interfaces}
+\label{Section 2.2.3}
+
+In working with compound data, we've stressed how data abstraction permits us
+to design programs without becoming enmeshed in the details of data
+representations, and how abstraction preserves for us the flexibility to
+experiment with alternative representations.  In this section, we introduce
+another powerful design principle for working with data structures---the use of
+\newterm{conventional interfaces}.
+
+\begin{notTaste}
+Before we begin, a debt from \link{Section 2.2.1} falls due.  Every procedure
+in this section builds a sequence by putting an element on the front of another
+sequence, and we should say plainly what that costs us.
+
+In the original it costs nothing.  A pair holds a pointer to the rest of the
+list, so \code{cons} makes one pair and is done, whatever the length of what
+follows.  Building a list of \( n \) elements this way takes \( \Theta(n) \)
+operations in total.  A tuple cannot point at another tuple and call it a tail:
+\code{(x,) + rest} must make a new tuple and copy every element of \code{rest}
+into it.  Building up \( n \) elements therefore copies \( 1 + 2 + \dots + n \)
+of them, which is \( \Theta(n^2) \).
+
+This is not a small constant factor.  Timing the two, and doubling the length
+each time:
+
+\begin{codeBlock}
+      n   tuple prepend   list append
+   1000          0.69ms       0.018ms
+   2000          2.49ms       0.032ms
+   4000         10.09ms       0.065ms
+   8000         44.86ms       0.140ms
+  16000        189.54ms       0.288ms
+\end{codeBlock}
+
+\noindent
+Doubling \( n \) roughly quadruples the first column and merely doubles the
+second, which is what \( \Theta(n^2) \) against \( \Theta(n) \) looks like when
+you watch it.  By sixteen thousand elements the difference is a factor of some
+six hundred.
+
+We are going to write the section's procedures this way regardless, because the
+shape of the decomposition is what the section is about and the shape is
+right.\footnote{It is worth being clear about which claims survive the change
+and which do not.  The \emph{structure} of the argument---that these programs
+are an enumerator, a filter, a map and an accumulator in series---is
+representation-independent and holds for us exactly as it does for the
+original.  The order-of-growth claims are not: where the original says a
+sequence operation costs \( \Theta(n) \), ours may cost \( \Theta(n^2) \), and
+we shall say so where it matters rather than quietly inheriting the assertion.}
+What we should not do is pretend the cost is not there, nor conclude that
+Python is unsuited to the style.  It is not: the builtins this section turns
+out to duplicate are written to avoid exactly this, and by the end of the
+chapter we shall have the tools to build a pair with the original's
+ergonomics---one that can share a tail, and so restore the original's costs
+along with its shape.
+\end{notTaste}
+
+In \link{Section 1.3} we saw how program abstractions, implemented as
+higher-order procedures, can capture common patterns in programs that deal with
+numerical data.  Our ability to formulate analogous operations for working with
+compound data depends crucially on the style in which we manipulate our data
+structures.  Consider, for example, the following procedure, analogous to the
+\code{count\_leaves} procedure of \link{Section 2.2.2}, which takes a tree as
+argument and computes the sum of the squares of the leaves that are odd:
+
+\begin{codeBlock}
+>>> def sum_odd_squares(tree):
+...     if tree == ():
+...         return 0
+...     elif not is_pair(tree):
+...         return square(tree) if is_odd(tree) else 0
+...     else:
+...         return (sum_odd_squares(tree[0])
+...                 + sum_odd_squares(tree[1:]))
+\end{codeBlock}
+
+\noindent
+On the surface, this procedure is very different from the following one, which
+constructs a list of all the even Fibonacci numbers \( {\rm Fib}(k) \), where
+\( k \) is less than or equal to a given integer \( n \):
+
+\begin{codeBlock}
+>>> def even_fibs(n):
+...     def next(k):
+...         if k > n:
+...             return ()
+...         f = fib(k)
+...         if is_even(f):
+...             return (f,) + next(k + 1)
+...         else:
+...             return next(k + 1)
+...     return next(0)
+\end{codeBlock}
+
+\noindent
+Despite the fact that these two procedures are structurally very different, a
+more abstract description of the two computations reveals a great deal of
+similarity.  The first program
+
+\begin{itemize}
+\item
+enumerates the leaves of a tree;
+
+\item
+filters them, selecting the odd ones;
+
+\item
+squares each of the selected ones; and
+
+\item
+accumulates the results using \code{+}, starting with 0.
+\end{itemize}
+
+\noindent
+The second program
+
+\begin{itemize}
+\item
+enumerates the integers from 0 to \( n \);
+
+\item
+computes the Fibonacci number for each integer;
+
+\item
+filters them, selecting the even ones; and
+
+\item
+accumulates the results using \code{cons},  starting with the
+empty list.
+\end{itemize}
+
+% figure 2.7
+\begin{imageFigure}{The signal-flow plans for the procedures
+  \code{sum\_odd\_squares} (top) and \code{even\_fibs} (bottom) reveal the
+  commonality between the two programs.}
+  \includegraphics[width=111mm]{assets/figures/chapter_2/figure_2.7d.pdf}
+\end{imageFigure}
+
+\noindent
+A signal-processing engineer would find it natural to conceptualize these
+processes in terms of signals flowing through a cascade of stages, each of
+which implements part of the program plan, as shown in \link{Figure 2.7}.  In
+\code{sum\_odd\_squares}, we begin with an \newterm{enumerator}, which
+generates a ``signal'' consisting of the leaves of a given tree.  This signal
+is passed through a \newterm{filter}, which eliminates all but the odd
+elements.  The resulting signal is in turn passed through a \newterm{map},
+which is a ``transducer'' that applies the \code{square} procedure to each
+element.  The output of the map is then fed to an \newterm{accumulator}, which
+combines the elements using \code{+}, starting from an initial 0.  The plan for
+\code{even\_fibs} is analogous.
+
+Unfortunately, the two procedure definitions above fail to exhibit this
+signal-flow structure.  For instance, if we examine the
+\code{sum\_odd\_squares} procedure, we find that the enumeration is implemented
+partly by the \code{null?} and \code{pair?} tests and partly by the
+tree-recursive structure of the procedure.  Similarly, the accumulation is
+found partly in the tests and partly in the addition used in the recursion.  In
+general, there are no distinct parts of either procedure that correspond to the
+elements in the signal-flow description.  Our two procedures decompose the
+computations in a different way, spreading the enumeration over the program and
+mingling it with the map, the filter, and the accumulation.  If we could
+organize our programs to make the signal-flow structure manifest in the
+procedures we write, this would increase the conceptual clarity of the
+resulting code.
+
+\subsubsection*{Sequence Operations}
+
+The key to organizing programs so as to more clearly reflect the signal-flow
+structure is to concentrate on the ``signals'' that flow from one stage in the
+process to the next.  If we represent these signals as lists, then we can use
+list operations to implement the processing at each of the stages.  For
+instance, we can implement the mapping stages of the signal-flow diagrams using
+the \code{map} procedure from \link{Section 2.2.1}:
+
+\begin{codeBlock}
+>>> tuple(map(square, (1, 2, 3, 4, 5)))
+(1, 4, 9, 16, 25)
+\end{codeBlock}
+
+\noindent
+Filtering a sequence to select only those elements that satisfy a given
+predicate is accomplished by
+
+\begin{codeBlock}
+>>> def filter(predicate, sequence):
+...     if sequence == ():
+...         return ()
+...     elif predicate(sequence[0]):
+...         return ((sequence[0],)
+...                 + filter(predicate, sequence[1:]))
+...     else:
+...         return filter(predicate, sequence[1:])
+\end{codeBlock}
+
+\noindent
+For example,
+
+\begin{codeBlock}
+>>> filter(is_odd, (1, 2, 3, 4, 5))
+(1, 3, 5)
+\end{codeBlock}
+
+\noindent
+\begin{revealTheSurface}
+As with \code{map}, we may write it with a \code{for} statement:
+
+\begin{codeBlock}
+>>> def filter(predicate, sequence):
+...     kept = ()
+...     for item in sequence:
+...         if predicate(item):
+...             kept = kept + (item,)
+...     return kept
+\end{codeBlock}
+
+\noindent
+and as with \code{map}, Python supplies it already, lazily, so that a
+\code{tuple} around it is needed to see the answer:
+
+\begin{codeBlock}
+>>> del filter
+>>> tuple(filter(is_odd, (1, 2, 3, 4, 5)))
+(1, 3, 5)
+\end{codeBlock}
+
+\noindent
+But there is a third form, and it is the one a Python programmer reaches for.
+Selecting some elements of a sequence, and transforming each element of a
+sequence, are written with the same piece of syntax:
+
+\begin{codeBlock}
+>>> tuple(x for x in (1, 2, 3, 4, 5) if is_odd(x))
+(1, 3, 5)
+>>> tuple(square(x) for x in (1, 2, 3, 4, 5))
+(1, 4, 9, 16, 25)
+\end{codeBlock}
+
+\noindent
+This is a \newterm{comprehension}.  Read it from the middle outwards: \code{for
+x in (1, 2, 3, 4, 5)} names each element in turn, \code{if is\_odd(x)} keeps
+only some of them, and the expression at the front says what to produce from
+each one that survives.  Leave off the \code{if} and nothing is filtered; make
+the front expression just \code{x} and nothing is transformed.
+
+The two stages compose in one form, which is worth noticing, because it is the
+first place Python fuses two of the section's boxes into a single piece of
+notation:
+
+\begin{codeBlock}
+>>> tuple(square(x) for x in (1, 2, 3, 4, 5) if is_odd(x))
+(1, 9, 25)
+\end{codeBlock}
+
+\noindent
+That is a filter and a map in series, written as one expression and computed in
+one pass.\footnote{Written with square brackets in place of the \code{tuple(
+\dots )} it is a \newterm{list comprehension}, which is the name the reader
+will meet elsewhere and which produces Python's mutable \code{list}.  The form
+above, in bare parentheses, is a \newterm{generator expression}: like
+\code{map} and \code{filter} it is lazy, and handing it to \code{tuple} is what
+draws the elements through.  We write it this way to keep our sequences
+tuples.}
+
+The accumulator has no such notation, and we shall come to why in a moment.
+\end{revealTheSurface}
+
+\noindent
+Accumulations can be implemented by
+
+\begin{codeBlock}
+>>> def accumulate(op, initial, sequence):
+...     if sequence == ():
+...         return initial
+...     else:
+...         return op(sequence[0],
+...                   accumulate(op, initial, sequence[1:]))
+
+>>> accumulate(add, 0, (1, 2, 3, 4, 5))
+15
+>>> accumulate(mul, 1, (1, 2, 3, 4, 5))
+120
+>>> accumulate(lambda x, rest: (x,) + rest, (), (1, 2, 3, 4, 5))
+(1, 2, 3, 4, 5)
+\end{codeBlock}
+
+\noindent
+\code{add} and \code{mul} are the procedures behind \code{+} and \code{*},
+which we met in \link{Exercise 1.4}; they come from the \code{operator} module,
+and we use them here for the same reason the original uses \code{+} and
+\code{*}---an accumulator takes a procedure, and an operator is not one until
+it is named.\footnote{\code{from operator import add, mul}.  The last of the
+three examples has no such name to borrow: the original passes \code{cons},
+and our equivalent, joining an element to the front of a sequence, is the
+\code{+} of tuples with one argument wrapped, which no module supplies
+ready-made.}
+
+\begin{revealTheSurface}
+Python's name for this is \code{reduce}, from the \code{functools} module:
+
+\begin{codeBlock}
+>>> from functools import reduce
+>>> reduce(add, (1, 2, 3, 4, 5), 0)
+15
+\end{codeBlock}
+
+\noindent
+Note that the sequence and the initial value have swapped places, and note
+something less obvious that \link{Exercise 2.38} will make the whole subject
+of: \code{reduce} is not quite our \code{accumulate}.  It combines in the
+opposite direction.
+
+There is no comprehension for this stage, and the reason is worth stating.  A
+comprehension produces one output element for each input element it keeps; that
+is what the notation is for.  An accumulation produces a single value from the
+whole sequence, which is a different shape of computation, and Python spells it
+with a procedure call instead.  It does supply ready-made accumulators for the
+common cases---\code{sum}, \code{max}, \code{min}, \code{any}, \code{all}---and
+those combine with a comprehension perfectly well, which is how most of this
+section's examples are actually written in Python:
+
+\begin{codeBlock}
+>>> sum(square(x) for x in (1, 2, 3, 4, 5) if is_odd(x))
+35
+\end{codeBlock}
+\end{revealTheSurface}
+
+All that remains to implement signal-flow diagrams is to enumerate the sequence
+of elements to be processed.  For \code{even\_fibs}, we need to generate the
+sequence of integers in a given range, which we can do as follows:
+
+\begin{codeBlock}
+>>> def enumerate_interval(low, high):
+...     if low > high:
+...         return ()
+...     else:
+...         return (low,) + enumerate_interval(low + 1, high)
+
+>>> enumerate_interval(2, 7)
+(2, 3, 4, 5, 6, 7)
+\end{codeBlock}
+
+\noindent
+\begin{revealTheSurface}
+This one Python has as a piece of the language.  \code{range(low, high)} counts
+from \code{low} up to but not including \code{high}---so the upper end is one
+further along than the original's:
+
+\begin{codeBlock}
+>>> tuple(range(2, 8))
+(2, 3, 4, 5, 6, 7)
+\end{codeBlock}
+
+\noindent
+\code{range} is lazy like \code{map}, and it is what appears after \code{for}
+in nearly every comprehension in this section.
+\end{revealTheSurface}
+
+\noindent
+To enumerate the leaves of a tree, we can use\footnote{This is, in fact,
+precisely the \code{fringe} procedure from \link{Exercise 2.28}.  Here we've
+renamed it to emphasize that it is part of a family of general
+sequence-manipulation procedures.}
+
+\begin{codeBlock}
+>>> def enumerate_tree(tree):
+...     if tree == ():
+...         return ()
+...     elif not is_pair(tree):
+...         return (tree,)
+...     else:
+...         return (enumerate_tree(tree[0])
+...                 + enumerate_tree(tree[1:]))
+
+>>> enumerate_tree((1, (2, (3, 4)), 5))
+(1, 2, 3, 4, 5)
+\end{codeBlock}
+
+\noindent
+Now we can reformulate \code{sum\_odd\_squares} and \code{even\_fibs} as in the
+signal-flow diagrams.  For \code{sum\_odd\_squares}, we enumerate the sequence
+of leaves of the tree, filter this to keep only the odd numbers in the
+sequence, square each element, and sum the results:
+
+\begin{codeBlock}
+>>> def sum_odd_squares(tree):
+...     return accumulate(
+...         add, 0,
+...         tuple(map(square,
+...                   filter(is_odd, enumerate_tree(tree)))))
+\end{codeBlock}
+
+\noindent
+For \code{even\_fibs}, we enumerate the integers from 0 to \( n \), generate
+the Fibonacci number for each of these integers, filter the resulting sequence
+to keep only the even elements, and accumulate the results into a list:
+
+\begin{codeBlock}
+>>> def even_fibs(n):
+...     return tuple(filter(is_even,
+...                         map(fib, enumerate_interval(0, n))))
+\end{codeBlock}
+
+\noindent
+The second of these has lost its accumulator.  The original ends with
+\code{(accumulate cons nil ...)}, which rebuilds the filtered signal into a
+list---necessary there, because \code{filter} has already produced a list and
+the accumulation is how the pieces are put back together.  For us the filtered
+signal is a lazy sequence and \code{tuple} is what draws it out, so the final
+stage is the drawing-out rather than a fold.
+
+\begin{revealTheSurface}
+Both read more directly as comprehensions, and both fuse three of the four
+boxes into one expression:
+
+\begin{codeBlock}
+>>> def sum_odd_squares(tree):
+...     return sum(square(x)
+...                for x in enumerate_tree(tree)
+...                if is_odd(x))
+
+>>> def even_fibs(n):
+...     return tuple(f for f in map(fib, range(0, n + 1))
+...                  if is_even(f))
+\end{codeBlock}
+
+\noindent
+It is worth being careful about what has been gained.  The signal-flow
+structure has not gone away; it has been written in a notation that expresses
+it in one piece instead of four nested calls.  The enumerator is the \code{for}
+clause, the filter is the \code{if} clause, the map is the expression at the
+front, and the accumulator is the procedure wrapped round the whole.  The
+argument of this section is that recognising those four stages is what lets one
+see two unlike programs as the same program---and that remains true whichever
+of the two notations one writes them in.
+\end{revealTheSurface}
+
+The value of expressing programs as sequence operations is that this helps us
+make program designs that are modular, that is, designs that are constructed by
+combining relatively independent pieces.  We can encourage modular design by
+providing a library of standard components together with a conventional
+interface for connecting the components in flexible ways.
+
+Modular construction is a powerful strategy for controlling complexity in
+engineering design.  In real signal-processing applications, for example,
+designers regularly build systems by cascading elements selected from
+standardized families of filters and transducers.  Similarly, sequence
+operations provide a library of standard program elements that we can mix and
+match.  For instance, we can reuse pieces from the \code{sum\_odd\_squares} and
+\code{even\_fibs} procedures in a program that constructs a list of the squares
+of the first \( n + 1 \) Fibonacci numbers:
+
+\begin{codeBlock}
+>>> def list_fib_squares(n):
+...     return tuple(map(square, map(fib, range(0, n + 1))))
+
+>>> list_fib_squares(10)
+(0, 1, 1, 4, 9, 25, 64, 169, 441, 1156, 3025)
+\end{codeBlock}
+
+\noindent
+We can rearrange the pieces and use them in computing the product of the
+squares of the odd integers in a sequence:
+
+\begin{codeBlock}
+>>> def product_of_squares_of_odd_elements(sequence):
+...     return reduce(mul,
+...                   (square(x) for x in sequence if is_odd(x)),
+...                   1)
+
+>>> product_of_squares_of_odd_elements((1, 2, 3, 4, 5))
+225
+\end{codeBlock}
+
+\noindent
+We can also formulate conventional data-processing applications in terms of
+sequence operations.  Suppose we have a sequence of personnel records and we
+want to find the salary of the highest-paid programmer.  Assume that we have a
+selector \code{salary} that returns the salary of a record, and a predicate
+\code{is\_programmer} that tests if a record is for a programmer.  Then we can
+write
+
+\begin{codeBlock}
+>>> def salary_of_highest_paid_programmer(records):
+...     return max((salary(r) for r in records if is_programmer(r)),
+...                default=0)
+\end{codeBlock}
+
+\noindent
+These examples give just a hint of the vast range of operations that can be
+expressed as sequence operations.\footnote{Richard \link{Waters (1979)}
+developed a program that automatically analyzes traditional Fortran programs,
+viewing them in terms of maps, filters, and accumulations.  He found that fully
+90 percent of the code in the Fortran Scientific Subroutine Package fits neatly
+into this paradigm.  One of the reasons for the success of Lisp as a
+programming language is that lists provide a standard medium for expressing
+ordered collections so that they can be manipulated using higher-order
+operations.  The programming language APL owes much of its power and appeal to
+a similar choice. In APL all data are represented as arrays, and there is a
+universal and convenient set of generic operators for all sorts of array
+operations.}
+
+Sequences, implemented here as lists, serve as a conventional interface that
+permits us to combine processing modules.  Additionally, when we uniformly
+represent structures as sequences, we have localized the data-structure
+dependencies in our programs to a small number of sequence operations.  By
+changing these, we can experiment with alternative representations of
+sequences, while leaving the overall design of our programs intact.  We will
+exploit this capability in \link{Section 3.5}, when we generalize the
+sequence-processing paradigm to admit infinite sequences.
+
+\begin{exerciseGroup}
+\phantomsection\label{Exercise 2.33}
+\exerciseHeading{Exercise 2.33:} Fill in the missing expressions
+to complete the following definitions of some basic sequence-manipulation
+operations as accumulations.  \code{join} is the procedure that puts an element
+on the front of a sequence, \code{lambda x, rest: (x,) + rest}, which we used
+above where the original passes \code{cons}; the first definition is named
+\code{my\_map} so as not to shadow the built-in one:
+
+\begin{syntaxForm}
+def my_map(p, sequence):
+    return accumulate(lambda x, y: \meta{??}, (), sequence)
+
+def append(seq1, seq2):
+    return accumulate(join, \meta{??}, \meta{??})
+
+def length(sequence):
+    return accumulate(\meta{??}, 0, sequence)
+\end{syntaxForm}
+
+\phantomsection\label{Exercise 2.34}
+\exerciseHeading{Exercise 2.34:} Evaluating a polynomial in \( x \)
+at a given value of \( x \) can be formulated as an accumulation.  We evaluate
+the polynomial
+
+$$ a_n x^n + a_{n-1} x^{n-1} + \dots + a_1 x + a_0 $$
+
+\noindent
+using a well-known algorithm called \newterm{Horner's rule}, which structures
+the computation as
+
+$$ (\dots (a_n x + a_{n-1}) x + \dots + a_1) x + a_0. $$
+
+\noindent
+In other words, we start with \( a_n \), multiply by \( x \), add \( a_{n-1}
+\), multiply by \( x \), and so on, until we reach \( a_0
+\).\footnote{According to \link{Knuth 1981}, this rule was formulated by W. G.
+Horner early in the nineteenth century, but the method was actually used by
+Newton over a hundred years earlier.  Horner's rule evaluates the polynomial
+using fewer additions and multiplications than does the straightforward method
+of first computing \( a_n x^n \), then adding \( a_{n-1}x^{n-1} \), and so on.
+In fact, it is possible to prove that any algorithm for evaluating arbitrary
+polynomials must use at least as many additions and multiplications as does
+Horner's rule, and thus Horner's rule is an optimal algorithm for polynomial
+evaluation.  This was proved (for the number of additions) by A. M. Ostrowski
+in a 1954 paper that essentially founded the modern study of optimal
+algorithms.  The analogous statement for multiplications was proved by V. Y.
+Pan in 1966.  The book by \link{Borodin and Munro (1975)} provides an overview
+of these and other results about optimal algorithms.}
+
+Fill in the following template to produce a procedure that evaluates a
+polynomial using Horner's rule.  Assume that the coefficients of the polynomial
+are arranged in a sequence, from \( a_0 \) through \( a_n \).
+
+\begin{syntaxForm}
+def horner_eval(x, coefficient_sequence):
+    return accumulate(
+        lambda this_coeff, higher_terms: \meta{??},
+        0,
+        coefficient_sequence)
+\end{syntaxForm}
+
+For example, to compute \( 1 + 3x + 5x^3 + x^5 \) at \( x = 2 \) you
+would evaluate
+
+\begin{codeBlock}
+>>> horner_eval(2, (1, 3, 0, 5, 0, 1))
+\end{codeBlock}
+
+\phantomsection\label{Exercise 2.35}
+\exerciseHeading{Exercise 2.35:} Redefine \code{count\_leaves} from
+\link{Section 2.2.2} as an accumulation:
+
+\begin{syntaxForm}
+def count_leaves(t):
+    return accumulate(\meta{??}, \meta{??}, tuple(map(\meta{??}, \meta{??})))
+\end{syntaxForm}
+
+\phantomsection\label{Exercise 2.36}
+\exerciseHeading{Exercise 2.36:} The procedure \code{accumulate\_n}
+is similar to \code{accumulate} except that it takes as its third argument a
+sequence of sequences, which are all assumed to have the same number of
+elements.  It applies the designated accumulation procedure to combine all the
+first elements of the sequences, all the second elements of the sequences, and
+so on, and returns a sequence of the results.  For instance, if \code{s} is a
+sequence containing four sequences, \code{((1, 2, 3), (4, 5, 6), (7, 8, 9),
+(10, 11, 12))}, then the value of \code{accumulate\_n(add, 0, s)} should be the
+sequence \code{(22, 26, 30)}.  Fill in the missing expressions in the following
+definition of \code{accumulate\_n}:
+
+\begin{syntaxForm}
+def accumulate_n(op, init, seqs):
+    if seqs[0] == ():
+        return ()
+    else:
+        return ((accumulate(op, init, \meta{??}),)
+                + accumulate_n(op, init, \meta{??}))
+\end{syntaxForm}
+
+\phantomsection\label{Exercise 2.37}
+\exerciseHeading{Exercise 2.37:}
+Suppose we represent vectors \( \mathbf{v} = (v_i) \) as sequences of numbers,
+and matrices \( \mathbf{m} = (m_{ij}) \) as sequences of vectors (the rows of
+the matrix).  For example, the matrix
+
+$$
+\left(
+\begin{array}{cccc}
+  1 & 2 & 3 & 4 \\
+  4 & 5 & 6 & 6 \\
+  6 & 7 & 8 & 9
+\end{array}
+\right)
+$$
+
+\noindent
+is represented as the sequence \code{((1, 2, 3, 4), (4, 5, 6, 6), (6, 7, 8,
+9))}.  With
+this representation, we can use sequence operations to concisely express the
+basic matrix and vector operations.  These operations (which are described in
+any book on matrix algebra) are the following:
+
+$$
+\begin{array}{rl}
+	\text{\texttt{dot\_product(v, w)}} 		& \text{returns the sum } \sum_i v_i w_i; \\
+	\text{\texttt{matrix\_times\_vector(m, v)}} 	& \text{returns the vector } \mathbf{t},  \\
+& \text{where } t_i = \sum_j m_{ij} v_j;      \\
+\text{\texttt{matrix\_times\_matrix(m, n)}} 	& \text{returns the matrix }
+\mathbf{p},  \\ & \text{where } p_{ij} = \sum_k m_{ik} n_{kj};                 
+\\ \text{\texttt{transpose(m)}} 		& \text{returns the matrix } \mathbf{n},  \\
+& \text{where } n_{ij} = m_{ji}.
+\end{array}
+$$
+
+We can define the dot product as\footnote{This definition relies on the
+built-in \code{map} taking several sequences at once, as noted in
+\link{Section 2.2.1}: given two, it applies the procedure to the first element
+of each, then the second of each, and so on.}
+
+\begin{codeBlock}
+>>> def dot_product(v, w):
+...     return accumulate(add, 0, tuple(map(mul, v, w)))
+\end{codeBlock}
+
+Fill in the missing expressions in the following procedures for computing the
+other matrix operations.  (The procedure \code{accumulate\_n} is defined in
+\link{Exercise 2.36}.)
+
+\begin{syntaxForm}
+def matrix_times_vector(m, v):
+    return tuple(map(\meta{??}, m))
+
+def transpose(mat):
+    return accumulate_n(\meta{??}, \meta{??}, mat)
+
+def matrix_times_matrix(m, n):
+    cols = transpose(n)
+    return tuple(map(\meta{??}, m))
+\end{syntaxForm}
+
+\phantomsection\label{Exercise 2.38}
+\exerciseHeading{Exercise 2.38:} The \code{accumulate} procedure
+is also known as \code{fold\_right}, because it combines the first element of
+the sequence with the result of combining all the elements to the right.  There
+is also a \code{fold\_left}, which is similar to \code{fold\_right}, except
+that it combines elements working in the opposite direction:
+
+\begin{codeBlock}
+>>> def fold_left(op, initial, sequence):
+...     result = initial
+...     for item in sequence:
+...         result = op(result, item)
+...     return result
+\end{codeBlock}
+
+\noindent
+The names repay a moment's thought, because they do not mean what one first
+guesses.  They do not describe the order in which the elements are visited---in
+both procedures the elements are taken in the order they are written.  They
+describe which \emph{end the combining starts from}, or equivalently where the
+initial value sits.  Writing out both for the sequence \code{(1, 2, 3)} makes
+it plain:
+
+\begin{codeBlock}
+fold_right:  op(1, op(2, op(3, initial)))
+fold_left:   op(op(op(initial, 1), 2), 3)
+\end{codeBlock}
+
+\noindent
+In \code{fold\_right} the initial value is at the right-hand end and the
+parentheses nest rightwards, so nothing can be combined until the recursion has
+run all the way to the end of the sequence and started back.  In
+\code{fold\_left} the initial value is at the left-hand end, and each element
+is combined with the running result as it is reached.  So both are correct at
+once: \code{fold\_right} does combine the first element with the result of
+combining everything to its right, as the original says, and \code{fold\_left}
+does work left to right in the order written.  The first statement is about
+where the nesting begins; the second is about the order of traversal, and only
+\code{fold\_left}'s two agree.
+
+Python's \code{reduce} is \code{fold\_left}.  It has no \code{fold\_right},
+which is why we had to write \code{accumulate} ourselves.\footnote{This is not
+an oversight.  A left fold can be written as a loop that keeps one running
+value, which is cheap and never runs out of stack; a right fold must reach the
+end before it can combine anything, and in Python that means recursion and a
+recursion limit.  Languages that evaluate lazily prefer the right fold for
+precisely the reason Python cannot: it can stop early and can work on a
+sequence that has no end.}
+
+What are the values of
+
+\begin{codeBlock}
+>>> fold_right(div, 1, (1, 2, 3))
+>>> fold_left(div, 1, (1, 2, 3))
+>>> fold_right(pair, (), (1, 2, 3))
+>>> fold_left(pair, (), (1, 2, 3))
+\end{codeBlock}
+
+\noindent
+where \code{div} is the procedure behind \code{/} and \code{pair} is
+\code{lambda a, b: (a, b)}.  Work them out from the two nesting patterns above
+before running them; the second pair of answers is the more instructive.
+
+Give a property that \code{op} should satisfy to guarantee that
+\code{fold\_right} and \code{fold\_left} will produce the same values for any
+sequence.
+
+\phantomsection\label{Exercise 2.39}
+\exerciseHeading{Exercise 2.39:} Complete the following
+definitions of \code{reverse} (\link{Exercise 2.18}) in terms of
+\code{fold\_right} and \code{fold\_left} from \link{Exercise 2.38}:
+
+\begin{syntaxForm}
+def reverse(sequence):
+    return fold_right(lambda x, y: \meta{??}, (), sequence)
+
+def reverse(sequence):
+    return fold_left(lambda x, y: \meta{??}, (), sequence)
+\end{syntaxForm}
+\end{exerciseGroup}
+
+\subsubsection*{Nested Mappings}
+
+We can extend the sequence paradigm to include many computations that are
+commonly expressed using nested loops.\footnote{This approach to nested
+mappings was shown to us by David Turner, whose languages KRC and Miranda
+provide elegant formalisms for dealing with these constructs.  The examples in
+this section (see also \link{Exercise 2.42}) are adapted from \link{Turner
+1981}.  In \link{Section 3.5.3}, we'll see how this approach generalizes to
+infinite sequences.} Consider this problem: Given a positive integer \( n \),
+find all ordered pairs of distinct positive integers \( i \) and \( j \), where
+\( 1 \le j < i \le n \), such that \( i + j \) is prime.  For example, if \( n
+\) is 6, then the pairs are the following:
+
+\[
+\renewcommand{\arraystretch}{1.4}  % row height
+\setlength{\arraycolsep}{10pt}     % space between columns
+\begin{array}{c|ccccccc}
+i & 2 & 3 & 4 & 4 & 5 & 6 & 6 \\
+j & 1 & 2 & 1 & 3 & 2 & 1 & 5 \\
+\hline
+i + j & 3 & 5 & 5 & 7 & 7 & 7 & 11
+\end{array}
+\]
+
+A natural way to organize this computation is to generate the sequence of all
+ordered pairs of positive integers less than or equal to \( n \), filter to
+select those pairs whose sum is prime, and then, for each pair \( (i, j) \)
+that passes through the filter, produce the triple \( (i, j, i + j) \).
+
+Here is a way to generate the sequence of pairs: For each integer \( i \le n
+\), enumerate the integers \( j < i \), and for each such \( i \) and \( j \)
+generate the pair \( (i, j) \).  In terms of sequence operations, we map along
+the sequence \code{range(1, n + 1)}.  For each \( i \) in this sequence, we map
+along the sequence \code{range(1, i)}.  For each \( j \) in this latter
+sequence, we generate the pair \code{(i, j)}.  This gives us a sequence of
+pairs for each \( i \).  Combining all the sequences for all the \( i \) (by
+accumulating with \code{append}) produces the required sequence of pairs, where
+\code{join\_sequences} is \code{lambda a, b: a + b}, the procedure behind the
+\code{+} that runs two tuples together:
+
+\begin{codeBlock}
+>>> accumulate(
+...     join_sequences, (),
+...     tuple(map(lambda i: tuple(map(lambda j: (i, j),
+...                                   range(1, i))),
+...               range(1, n + 1))))
+\end{codeBlock}
+
+\noindent
+The combination of mapping and accumulating with \code{append} is so common in
+this sort of program that we will isolate it as a separate procedure:
+
+\begin{codeBlock}
+>>> def flatmap(proc, seq):
+...     return accumulate(join_sequences, (),
+...                       tuple(map(proc, seq)))
+\end{codeBlock}
+
+\noindent
+\begin{revealTheSurface}
+A comprehension can carry more than one \code{for} clause, and when it does,
+the clauses nest: the second runs in full for each value the first produces,
+exactly as the nested \code{map}s do.  The whole of the expression above is
+
+\begin{codeBlock}
+>>> tuple((i, j) for i in range(1, n + 1) for j in range(1, i))
+\end{codeBlock}
+
+\noindent
+Read left to right, the clauses are in the same order one would write them as
+nested loops: \code{for i}, then within that \code{for j}.  What has vanished
+is the accumulation with \code{append}.  Nested \code{map}s produce a sequence
+of sequences, which must then be flattened, and \code{flatmap} exists to
+package the flattening with the mapping.  A comprehension with two \code{for}
+clauses produces the flat sequence directly: there is no intermediate sequence
+of sequences to collapse, because the notation never builds one.
+
+So \code{flatmap} has no Python equivalent, and needs none---not because the
+idea is missing, but because it is the ordinary reading of the notation.
+\end{revealTheSurface}
+
+Now filter this sequence of pairs to find those whose sum is prime. The filter
+predicate is called for each element of the sequence; its argument is a pair
+and it must extract the integers from the pair.  Thus, the predicate to apply
+to each element in the sequence is
+
+\begin{codeBlock}
+>>> def is_prime_sum(pair):
+...     return is_prime(pair[0] + pair[1])
+\end{codeBlock}
+
+\noindent
+Finally, generate the sequence of results by mapping over the filtered pairs
+using the following procedure, which constructs a triple consisting of the two
+elements of the pair along with their sum:
+
+\begin{codeBlock}
+>>> def make_pair_sum(pair):
+...     return (pair[0], pair[1], pair[0] + pair[1])
+\end{codeBlock}
+
+\noindent
+Combining all these steps yields the complete procedure:
+
+\begin{codeBlock}
+>>> def prime_sum_pairs(n):
+...     return tuple(map(
+...         make_pair_sum,
+...         filter(is_prime_sum,
+...                flatmap(lambda i: tuple(map(lambda j: (i, j),
+...                                            range(1, i))),
+...                        range(1, n + 1)))))
+\end{codeBlock}
+
+\noindent
+or, with the four stages in one expression:
+
+\begin{codeBlock}
+>>> def prime_sum_pairs(n):
+...     return tuple((i, j, i + j)
+...                  for i in range(1, n + 1)
+...                  for j in range(1, i)
+...                  if is_prime(i + j))
+
+>>> prime_sum_pairs(6)
+((2, 1, 3), (3, 2, 5), (4, 1, 5), (4, 3, 7), (5, 2, 7), (6, 1, 7), (6, 5, 11))
+\end{codeBlock}
+
+\noindent
+Nested mappings are also useful for sequences other than those that enumerate
+intervals.  Suppose we wish to generate all the permutations of a set \( S; \)
+that is, all the ways of ordering the items in the set.  For instance, the
+permutations of \( \{1, 2, 3\} \) are \( \{1, 2, 3\} \), \( \{1, 3, 2\} \), \(
+\{2, 1, 3\} \), \( \{2, 3, 1\} \), \( \{3, 1, 2\} \), and \( \{3, 2, 1\} \).
+Here is a plan for generating the permutations of \( S \): For each item \( x
+\) in \( S \), recursively generate the sequence of permutations of \( S - x
+\),\footnote{The set \( S - x \) is the set of all elements of \( S \),
+excluding \( x \).} and adjoin \( x \) to the front of each one. This yields,
+for each \( x \) in \( S \), the sequence of permutations of \( S \) that begin
+with \( x \).  Combining these sequences for all \( x \) gives all the
+permutations of \( S \):\footnote{The \code{\#} in Python code introduces a
+\newterm{comment}.  Everything from it to the end of the line is ignored by the
+interpreter; the original uses a semicolon for the same purpose.  In this book
+we don't use many comments; we try to make our programs self-documenting by
+using descriptive names.}
+
+\begin{codeBlock}
+>>> def permutations(s):
+...     if s == ():             # empty set?
+...         return ((),)        # sequence containing empty set
+...     else:
+...         return flatmap(
+...             lambda x: tuple(map(lambda p: (x,) + p,
+...                                 permutations(remove(x, s)))),
+...             s)
+
+>>> permutations((1, 2, 3))
+((1, 2, 3), (1, 3, 2), (2, 1, 3), (2, 3, 1), (3, 1, 2), (3, 2, 1))
+\end{codeBlock}
+
+\noindent
+Notice how this strategy reduces the problem of generating permutations of \( S
+\) to the problem of generating the permutations of sets with fewer elements
+than \( S \).  In the terminal case, we work our way down to the empty list,
+which represents a set of no elements.  For this, we generate \code{(list
+nil)}, which is a sequence with one item, namely the set with no elements.  The
+\code{remove} procedure used in \code{permutations} returns all the items in a
+given sequence except for a given item.  This can be expressed as a simple
+filter:
+
+\begin{codeBlock}
+>>> def remove(item, sequence):
+...     return tuple(x for x in sequence if x != item)
+\end{codeBlock}
+
+\begin{exerciseGroup}
+\phantomsection\label{Exercise 2.40}
+\exerciseHeading{Exercise 2.40:} Define a procedure
+\code{unique\_pairs} that, given an integer \( n \), generates the sequence of
+pairs \( (i, j) \) with \( 1 \le j < i \le n \).  Use \code{unique\_pairs}
+to simplify the definition of \code{prime\_sum\_pairs} given above.
+
+\phantomsection\label{Exercise 2.41}
+\exerciseHeading{Exercise 2.41:} Write a procedure to find all
+ordered triples of distinct positive integers \( i \), \( j \), and \( k \)
+less than or equal to a given integer \( n \) that sum to a given integer \( s
+\).
+
+\phantomsection\label{Exercise 2.42}
+\exerciseHeading{Exercise 2.42:} The ``eight-queens puzzle'' asks
+how to place eight queens on a chessboard so that no queen is in check from any
+other (i.e., no two queens are in the same row, column, or diagonal).  One
+possible solution is shown in \link{Figure 2.8}.  One way to solve the puzzle
+is to work across the board, placing a queen in each column.  Once we have
+placed \( k - 1 \) queens, we must place the \( k^{\mathrm{th}} \) queen in a
+position where it does not check any of the queens already on the board.  We
+can formulate this approach recursively: Assume that we have already generated
+the sequence of all possible ways to place \( k - 1 \) queens in the first \( k
+- 1 \) columns of the board.  For each of these ways, generate an extended set
+of positions by placing a queen in each row of the \( k^{\mathrm{th}} \)
+column.  Now filter these, keeping only the positions for which the queen in
+the \( k^{\mathrm{th}} \) column is safe with respect to the other queens.
+This produces the sequence of all ways to place \( k \) queens in the first \(
+k \) columns.  By continuing this process, we will produce not only one
+solution, but all solutions to the puzzle.
+
+% figure 2.8
+\begin{imageFigure}{A solution to the eight-queens puzzle.}
+  \includegraphics[width=48mm]{assets/figures/chapter_2/figure_2.8c.pdf}
+\end{imageFigure}
+
+We implement this solution as a procedure \code{queens}, which returns a
+sequence of all solutions to the problem of placing \( n \) queens on an
+\( n \times n \) chessboard.  \code{queens} has an internal procedure
+\code{queen\_cols} that returns the sequence of all ways to place queens in the
+first \( k \) columns of the board.\footnote{The \code{:=} in the comprehension
+is an \newterm{assignment expression}: it names a value and yields it at the
+same time, so that \code{positions} can be tested by \code{is\_safe} and also
+produced as the result.  Without it the comprehension would have to build the
+position twice, once to test and once to keep.  If it reads awkwardly---and
+opinions differ---write the procedure with nested \code{for} statements
+instead; the exercise is about the strategy, not the notation.}
+
+\begin{codeBlock}
+
+>>> def queens(board_size):
+...     def queen_cols(k):
+...         if k == 0:
+...             return (empty_board,)
+...         else:
+...             return tuple(
+...                 positions
+...                 for rest_of_queens in queen_cols(k - 1)
+...                 for new_row in range(1, board_size + 1)
+...                 if is_safe(k, positions := adjoin_position(
+...                     new_row, k, rest_of_queens)))
+...     return queen_cols(board_size)
+\end{codeBlock}
+
+In this procedure \code{rest\_of\_queens} is a way to place \( k - 1 \) queens
+in the first \( k - 1 \) columns, and \code{new\_row} is a proposed row in
+which to place the queen for the \( k^{\mathrm{th}} \) column.  Complete the
+program by implementing the representation for sets of board positions,
+including the procedure \code{adjoin\_position}, which adjoins a new row-column
+position to a set of positions, and \code{empty\_board}, which represents an
+empty set of positions. You must also write the procedure \code{is\_safe},
+which determines for a set of positions, whether the queen in the \(
+k^{\mathrm{th}} \) column is safe with respect to the others.  (Note that we
+need only check whether the new queen is safe---the other queens are already
+guaranteed safe with respect to each other.)
+
+\phantomsection\label{Exercise 2.43}
+\exerciseHeading{Exercise 2.43:} Louis Reasoner is having a
+terrible time doing \link{Exercise 2.42}.  His \code{queens} procedure seems to
+work, but it runs extremely slowly.  (Louis never does manage to wait long
+enough for it to solve even the \( 6\times6 \) case.)  When Louis asks Eva Lu
+Ator for help, she points out that he has interchanged the order of the two
+\code{for} clauses, writing them as
+
+\begin{codeBlock}
+...                 for new_row in range(1, board_size + 1)
+...                 for rest_of_queens in queen_cols(k - 1)
+\end{codeBlock}
+
+Explain why this interchange makes the program run slowly.  Estimate how long
+it will take Louis's program to solve the eight-queens puzzle, assuming that
+the program in \link{Exercise 2.42} solves the puzzle in time \( T \).
+\end{exerciseGroup}
+
