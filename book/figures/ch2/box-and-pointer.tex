@@ -1,0 +1,67 @@
+% How the original represents ((1, 2), 3, 4) as a chain of pairs, for Section
+% 2.2.2. Redrawn from upstream's figure 2.5 so that the three call-out labels
+% use tuple notation: the shape being drawn is Scheme's, but the object being
+% described is the one the surrounding text writes with commas.
+%
+% Coordinates are in millimetres with y running downwards, so the numbers below
+% read top-to-bottom in the order the figure does. A pair is two 8mm cells side
+% by side; a cell whose cdr is nil carries the conventional diagonal stroke.
+
+\begin{tikzpicture}[
+  y = -1mm, x = 1mm,
+  % A pair is drawn as ONE rounded rectangle with a divider through it, not as
+  % two boxes side by side: rounding two abutting boxes would round the inner
+  % edges as well, which is not how the original's cells look.
+  pair/.style   = {draw, rounded corners=1.2pt, fill=black!5, minimum width=16mm,
+                   minimum height=7mm, inner sep=0pt, outer sep=0pt},
+  % Geometry only, for anchoring pointers to each half.
+  half/.style   = {minimum width=8mm, minimum height=7mm,
+                   inner sep=0pt, outer sep=0pt},
+  leaf/.style   = {draw, rounded corners=1pt, fill=white, minimum width=8mm,
+                   minimum height=7mm, inner sep=0pt, outer sep=0pt,
+                   font=\ttfamily\footnotesize},
+  dot/.style    = {circle, fill, inner sep=1.1pt},
+  arrow/.style  = {-{Latex[length=1.6mm, width=1.4mm]}, thin},
+  label/.style  = {font=\ttfamily\scriptsize, inner sep=1pt},
+]
+
+% --- the pairs: each is a left (car) and right (cdr) cell ---
+\foreach \n/\x/\y in {pA/22/0, pC/62/0, pD/82/0, pB/22/15, pBb/44/15} {
+  \node[half] (\n l) at (\x, \y) {};
+  \node[half] (\n r) at (\x+8, \y) {};
+  \node[pair] (\n)   at (\x+4, \y) {};
+  \draw (\n l.north east) -- (\n l.south east);
+  \node[dot]  (\n d) at (\x, \y) {};
+}
+% cdr pointers, except where the cdr is nil
+\foreach \n in {pA, pC, pB} \node[dot] (\n rd) at ($(\n r.center)$) {};
+
+% --- nil: the conventional diagonal through the final cdr ---
+\draw (pDr.south west) -- (pDr.north east);
+\draw (pBbr.south west) -- (pBbr.north east);
+
+% --- leaves ---
+\node[leaf] (l1) at (22, 30) {1};
+\node[leaf] (l2) at (44, 30) {2};
+\node[leaf] (l3) at (62, 15) {3};
+\node[leaf] (l4) at (82, 15) {4};
+
+% --- pointers ---
+\draw[arrow] (pAd)  -- (pBl.north);      % car of the whole structure is (1, 2)
+\draw[arrow] (pArd) -- (pCl.west);       % cdr runs on to 3
+\draw[arrow] (pBd)  -- (l1.north);
+\draw[arrow] (pBrd) -- (pBbl.west);
+\draw[arrow] (pBbd) -- (l2.north);
+\draw[arrow] (pCd)  -- (l3.north);
+\draw[arrow] (pCrd) -- (pDl.west);
+\draw[arrow] (pDd)  -- (l4.north);
+
+% --- call-out labels, in the notation the section is written in ---
+\node[label] (topA) at (22, -11) {((1, 2), 3, 4)};
+\draw[arrow] (topA.south) -- (pAl.north);
+\node[label] (topC) at (62, -11) {(3, 4)};
+\draw[arrow] (topC.south) -- (pCl.north);
+\node[label] (leftB) at (4, 15) {(1, 2)};
+\draw[arrow] (leftB.east) -- (pBl.west);
+
+\end{tikzpicture}
