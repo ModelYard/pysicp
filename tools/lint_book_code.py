@@ -76,6 +76,31 @@ def odd_indents(source: str) -> list[str]:
     return found
 
 
+def figure_numbers() -> tuple[dict[str, str], list[str]]:
+    """Number the figures as LaTeX will, and collect every reference to one.
+
+    imageFigure labels itself with its own number, so a figure's number depends
+    on how many precede it. Adding or removing one silently renumbers every
+    reference after it, and LaTeX reports that only as an undefined reference
+    buried in the log.
+    """
+    contents = (REPO_ROOT / "contents.tex").read_text()
+    order = re.findall(r"\\input\{(book/[^}]*)\}", contents)
+    defined: dict[str, str] = {}
+    referenced: list[str] = []
+    chapter, index = 0, 0
+    for name in order:
+        body = (REPO_ROOT / name).read_text()
+        if re.search(r"\\chapter\{", body):
+            chapter += 1
+            index = 0
+        for _ in re.finditer(r"\\begin\{imageFigure\}", body):
+            index += 1
+            defined[f"{chapter}.{index}"] = name
+        referenced += re.findall(r"\\link\{Figure ([0-9.]+)\}", body)
+    return defined, referenced
+
+
 def book_files() -> list[Path]:
     return sorted(
         p for p in (REPO_ROOT / "book").rglob("*.tex") if "original" not in p.parts
@@ -115,6 +140,15 @@ def main() -> int:
             problems.extend(f"{rel}: {bad}" for bad in odd_indents(source))
         if chunks:
             sources[tex.stem.replace("-", "_")] = "\n\n".join(chunks) + "\n"
+
+    defined, referenced = figure_numbers()
+    for number in sorted(set(referenced)):
+        if number not in defined:
+            problems.append(
+                f"reference to Figure {number}, which no figure carries. "
+                "imageFigure numbers itself by position, so adding or removing "
+                "one renumbers every figure after it."
+            )
 
     if problems:
         print("error: problems in the book's printed code:", file=sys.stderr)
