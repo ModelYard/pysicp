@@ -1,0 +1,592 @@
+\subsection{Example: Symbolic Differentiation}
+\label{Section 2.3.2}
+
+As an illustration of symbol manipulation and a further illustration of data
+abstraction, consider the design of a procedure that performs symbolic
+differentiation of algebraic expressions.  We would like the procedure to take
+as arguments an algebraic expression and a variable and to return the
+derivative of the expression with respect to the variable.  For example, if the
+arguments to the procedure are \( ax^2 + bx + c \) and \( x \), the procedure
+should return \( 2ax + b \).  Symbolic differentiation is of special historical
+significance in Lisp.  It was one of the motivating examples behind the
+development of a computer language for symbol manipulation.  Furthermore, it
+marked the beginning of the line of research that led to the development of
+powerful systems for symbolic mathematical work, which are currently being used
+by a growing number of applied mathematicians and physicists.
+
+\begin{revealTheSurface}
+Python is unusually good at this, and by the end of the section we shall be
+writing
+
+\begin{codeBlock}
+>>> deriv(x + 3, x)
+1
+\end{codeBlock}
+
+\noindent
+with the expression written the way one would write it on paper.  We are not
+going to begin there.  We shall first build the differentiator the way the
+original does, with the expression held as data and taken apart by procedures
+we write, because that version is the one that shows what the convenient
+version is standing on---and because two of this section's exercises exist only
+in the first version, and are worth doing before they dissolve.
+\end{revealTheSurface}
+
+\subsubsection*{The differentiation program with abstract data}
+
+In order to keep things simple, we will consider a very simple
+symbolic-differentiation program that handles expressions that are built up
+using only the operations of addition and multiplication with two arguments.
+Differentiation of any such expression can be carried out by applying the
+following reduction rules:
+
+$$
+\frac{{\it dc}}{{\it dx}} = 0,
+\quad {\rm for\ } c\ {\rm a\ constant\ or\ a\ variable\ different\ from\ } x,
+$$
+
+$$
+\frac{{\it dx}}{{\it dx}} = 1,
+$$
+
+$$
+\frac{{\it d\,(u + v\,)}}{{\it dx}}
+=
+\frac{{\it du}}{{\it dx}} + \frac{{\it dv}}{{\it dx}},
+$$
+
+$$
+\frac{{\it d\,(uv\,)}}{{\it dx}}
+=
+u \frac{{\it dv}}{{\it dx}} + v \frac{{\it du}}{{\it dx}}.
+$$
+
+\noindent
+Observe that the latter two rules are recursive in nature.  That is, to obtain
+the derivative of a sum we first find the derivatives of the terms and add
+them.  Each of the terms may in turn be an expression that needs to be
+decomposed.  Decomposing into smaller and smaller pieces will eventually
+produce pieces that are either constants or variables, whose derivatives will
+be either 0 or 1.
+
+To embody these rules in a procedure we indulge in a little wishful thinking,
+as we did in designing the rational-number implementation.  If we had a means
+for representing algebraic expressions, we should be able to tell whether an
+expression is a sum, a product, a constant, or a variable.  We should be able
+to extract the parts of an expression.  For a sum, for example we want to be
+able to extract the addend (first term) and the augend (second term).  We
+should also be able to construct expressions from parts.  Let us assume that we
+already have procedures to implement the following selectors, constructors, and
+predicates:
+
+\begin{syntaxForm}
+is_variable(e)           Is e a variable?
+is_same_variable(v1, v2) Are v1 and v2 the same variable?
+is_sum(e)                Is e a sum?
+addend(e)                Addend of the sum e.
+augend(e)                Augend of the sum e.
+is_product(e)            Is e a product?
+multiplier(e)            Multiplier of the product e.
+multiplicand(e)          Multiplicand of the product e.
+make_sum(a1, a2)         Construct the sum of a1 and a2.
+make_product(m1, m2)     Construct the product of m1 and m2.
+\end{syntaxForm}
+
+\noindent
+Using these, and a predicate \code{is\_number} which identifies numbers, we can
+express the differentiation rules as the following procedure:
+
+\begin{codeBlock}
+>>> def deriv(exp, var):
+...     if is_number(exp):
+...         return 0
+...     elif is_variable(exp):
+...         return 1 if is_same_variable(exp, var) else 0
+...     elif is_sum(exp):
+...         return make_sum(deriv(addend(exp), var),
+...                         deriv(augend(exp), var))
+...     elif is_product(exp):
+...         return make_sum(
+...             make_product(multiplier(exp),
+...                          deriv(multiplicand(exp), var)),
+...             make_product(deriv(multiplier(exp), var),
+...                          multiplicand(exp)))
+...     else:
+...         raise ValueError(f"unknown expression type: {exp}")
+\end{codeBlock}
+
+\noindent
+Note the last clause.  Where the original calls \code{error}, we
+\code{raise}---the first time in this book that we have had to signal a
+failure.\footnote{\code{raise} interrupts the procedure and hands an object
+describing the trouble back to whoever called it.  \code{ValueError} is one of
+Python's ready-made kinds of trouble, and the \code{f} before the string marks
+it as a \newterm{formatted} string, in which an expression between braces is
+replaced by its value.  We shall not need more of exceptions than this until
+\link{Chapter 3}.}
+
+This \code{deriv} procedure incorporates the complete differentiation
+algorithm.  Since it is expressed in terms of abstract data, it will work no
+matter how we choose to represent algebraic expressions, as long as we design a
+proper set of selectors and constructors.  This is the issue we must address
+next.
+
+\subsubsection*{Representing algebraic expressions}
+
+We can imagine many ways to represent algebraic expressions.  For example, we
+could use sequences of symbols that mirror the usual algebraic notation,
+representing \( ax + b \) as \code{(a, mul, x, add, b)}.  However, one
+especially straightforward choice is to put the operator first, and represent
+\( ax + b \) as \code{(add, (mul, a, x), b)}.\footnote{This is where the
+original and the translation part company quietly.  The original chooses prefix
+notation because it is \emph{Lisp's own}: an expression and the program that
+manipulates it are written alike, which is the whole reason quotation was
+needed in \link{Section 2.3.1}.  Our tuples enjoy no such correspondence.
+\code{(add, (mul, a, x), b)} is a perfectly good representation and has nothing
+whatever to do with how Python spells \code{a * x + b}.  We choose it because it
+is simple, not because it is the language.}
+
+We shall want two symbols to mark the operators, and here the technique of
+\link{Section 2.3.1} earns its place: bind each name to the string of its own
+name, and expressions can be written without quotation marks anywhere.
+
+\begin{codeBlock}
+>>> add = "add"
+>>> mul = "mul"
+>>> x = "x"
+>>> y = "y"
+\end{codeBlock}
+
+\noindent
+Then our data representation for the differentiation problem is as follows:
+
+\begin{itemize}
+\item
+The variables are symbols, which for us are strings:
+
+\begin{codeBlock}
+>>> def is_variable(e):
+...     return isinstance(e, str)
+\end{codeBlock}
+
+\item
+Two variables are the same if the symbols representing them are equal:
+
+\begin{codeBlock}
+>>> def is_same_variable(v1, v2):
+...     return is_variable(v1) and is_variable(v2) and v1 == v2
+\end{codeBlock}
+
+\item
+Numbers are identified by their type, as sums and products will be:
+
+\begin{codeBlock}
+>>> def is_number(e):
+...     return isinstance(e, int | float)
+\end{codeBlock}
+
+\item
+Sums and products are constructed as sequences:
+
+\begin{codeBlock}
+>>> def make_sum(a1, a2):
+...     return (add, a1, a2)
+
+>>> def make_product(m1, m2):
+...     return (mul, m1, m2)
+\end{codeBlock}
+
+\item
+A sum is a sequence whose first element is the symbol \code{add}:
+
+\begin{codeBlock}
+>>> def is_sum(e):
+...     return isinstance(e, tuple) and e[0] == add
+\end{codeBlock}
+
+\item
+The addend is the second item of the sum:
+
+\begin{codeBlock}
+>>> def addend(s):
+...     return s[1]
+\end{codeBlock}
+
+\item
+The augend is the third item of the sum:
+
+\begin{codeBlock}
+>>> def augend(s):
+...     return s[2]
+\end{codeBlock}
+
+\item
+A product is a sequence whose first element is the symbol \code{mul}:
+
+\begin{codeBlock}
+>>> def is_product(e):
+...     return isinstance(e, tuple) and e[0] == mul
+\end{codeBlock}
+
+\item
+The multiplier is the second item of the product:
+
+\begin{codeBlock}
+>>> def multiplier(p):
+...     return p[1]
+\end{codeBlock}
+
+\item
+The multiplicand is the third item of the product:
+
+\begin{codeBlock}
+>>> def multiplicand(p):
+...     return p[2]
+\end{codeBlock}
+\end{itemize}
+
+\noindent
+Thus, we need only combine these with the algorithm as embodied by \code{deriv}
+in order to have a working symbolic-differentiation program.  Let us look at
+some examples of its behavior:
+
+\begin{codeBlock}
+>>> deriv((add, x, 3), x)
+('add', 1, 0)
+>>> deriv((mul, x, y), x)
+('add', ('mul', 'x', 0), ('mul', 1, 'y'))
+\end{codeBlock}
+
+\noindent
+Notice what the notation has bought.  The expression is \emph{written}
+\code{(add, x, 3)}, with no quotation marks, because \code{add} and \code{x}
+are names whose values are their own spellings; it is \emph{printed}
+\code{('add', 1, 0)}, because printing shows the values.  The original writes
+\code{'(+ x 3)} and prints \code{(+ 1 0)}, and the difference between the two
+forms is exactly the same difference.
+
+The program produces answers that are correct; however, they are unsimplified.
+It is true that
+
+$$ \frac{{\it d\,(xy\,)}}{{\it dx}} = x \cdot 0 + 1 \cdot y, $$
+
+\noindent
+but we would like the program to know that \( x \cdot 0 = 0 \), \( 1 \cdot y = y \),
+and \( 0 + y = y \).  The answer for the second example should have been
+simply \code{y}.  When the expressions are complex this becomes a serious
+issue: the derivative of \code{(mul, (mul, x, y), (add, x, 3))} comes back as a
+sequence too wide to print on this page.
+
+Our difficulty is much like the one we encountered with the rational-number
+implementation: we haven't reduced answers to simplest form.  To accomplish the
+rational-number reduction, we needed to change only the constructors and the
+selectors of the implementation.  We can adopt a similar strategy here.  We
+won't change \code{deriv} at all.  Instead, we will change \code{make\_sum} so
+that if both summands are numbers, \code{make\_sum} will add them and return
+their sum.  Also, if one of the summands is 0, then \code{make\_sum} will return
+the other summand.
+
+\begin{codeBlock}
+>>> def make_sum(a1, a2):
+...     if is_eq_number(a1, 0):
+...         return a2
+...     elif is_eq_number(a2, 0):
+...         return a1
+...     elif is_number(a1) and is_number(a2):
+...         return a1 + a2
+...     else:
+...         return (add, a1, a2)
+\end{codeBlock}
+
+\noindent
+This uses the procedure \code{is\_eq\_number}, which checks whether an
+expression is equal to a given number:
+
+\begin{codeBlock}
+>>> def is_eq_number(e, num):
+...     return is_number(e) and e == num
+\end{codeBlock}
+
+\noindent
+Similarly, we will change \code{make\_product} to build in the rules that 0
+times anything is 0 and 1 times anything is the thing itself:
+
+\begin{codeBlock}
+>>> def make_product(m1, m2):
+...     if is_eq_number(m1, 0) or is_eq_number(m2, 0):
+...         return 0
+...     elif is_eq_number(m1, 1):
+...         return m2
+...     elif is_eq_number(m2, 1):
+...         return m1
+...     elif is_number(m1) and is_number(m2):
+...         return m1 * m2
+...     else:
+...         return (mul, m1, m2)
+\end{codeBlock}
+
+\noindent
+Here is how this version works on our three examples:
+
+\begin{codeBlock}
+>>> deriv((add, x, 3), x)
+1
+>>> deriv((mul, x, y), x)
+'y'
+>>> deriv((mul, (mul, x, y), (add, x, 3)), x)
+('add', ('mul', 'x', 'y'), ('mul', 'y', ('add', 'x', 3)))
+\end{codeBlock}
+
+\noindent
+\code{deriv} was not touched.  Every one of those improvements was made by
+editing two constructors, and that is the whole argument for the abstraction
+barrier: the algorithm and the representation were separated far enough that
+the second could be improved without disturbing the first.
+
+Although this is quite an improvement, the third example shows that there is
+still a long way to go before we get a program that puts expressions into a
+form that we might agree is ``simplest.''  The problem of algebraic
+simplification is complex because, among other reasons, a form that may be
+simplest for one purpose may not be for another.
+
+\begin{exerciseGroup}
+\phantomsection\label{Exercise 2.56}
+\exerciseHeading{Exercise 2.56:} Show how to extend the basic
+differentiator to handle more kinds of expressions.  For instance, implement
+the differentiation rule
+
+$$ \frac{{\it d\,(u^n\,)}}{{\it dx}} = nu^{n-1} \frac{{\it du}}{{\it dx}} $$
+
+\noindent
+by adding a new clause to the \code{deriv} program and defining appropriate
+procedures \code{is\_exponentiation}, \code{base}, \code{exponent}, and
+\code{make\_exponentiation}.  (You may bind a symbol \code{power} to denote
+exponentiation, as we did for \code{add} and \code{mul}.)  Build in the rules
+that anything raised to the power 0 is 1 and anything raised to the power 1 is
+the thing itself.
+
+\phantomsection\label{Exercise 2.57}
+\exerciseHeading{Exercise 2.57:} Extend the differentiation
+program to handle sums and products of arbitrary numbers of (two or more)
+terms.  Then the last example above could be expressed as
+
+\begin{codeBlock}
+>>> deriv((mul, x, y, (add, x, 3)), x)
+\end{codeBlock}
+
+Try to do this by changing only the representation for sums and products,
+without changing the \code{deriv} procedure at all.  For example, the
+\code{addend} of a sum would be the first term, and the \code{augend} would be
+the sum of the rest of the terms.
+
+\phantomsection\label{Exercise 2.58}
+\exerciseHeading{Exercise 2.58:} Suppose we want to modify the
+differentiation program so that it works with ordinary mathematical notation,
+in which \code{add} and \code{mul} are infix rather than prefix operators.
+Since the differentiation program is defined in terms of abstract data, we can
+modify it to work with different representations of expressions solely by
+changing the predicates, selectors, and constructors that define the
+representation of the algebraic expressions on which the differentiator is to
+operate.
+
+\begin{enumerate}[a.]
+
+\item
+Show how to do this in order to differentiate algebraic expressions presented
+in infix form, such as \code{(x, add, (3, mul, (x, add, (y, add, 2))))}.  To
+simplify the task, assume that \code{add} and \code{mul} always take two
+arguments and that expressions are fully parenthesized.
+
+\item
+The problem becomes substantially harder if we allow standard algebraic
+notation, such as \code{(x, add, 3, mul, (x, add, y, add, 2))}, which drops
+unnecessary parentheses and assumes that multiplication is done before
+addition.  Can you design appropriate predicates, selectors, and constructors
+for this notation such that our derivative program still works?\footnote{Part
+(b) is a small precedence parser, and the whole of it turns on one observation:
+\code{add} binds more loosely than \code{mul}, so an expression containing a
+top-level \code{add} \emph{is} a sum, and may be split at the first one---
+everything before it is the addend, everything after is the augend, and the
+augend may still contain operators, which the recursion will deal with.  Eight
+lines suffice.  Do not be put off by the original's warning that this is
+substantially harder; it is harder than part (a), which is six one-line
+procedures, but it is not long.}
+
+\end{enumerate}
+\end{exerciseGroup}
+
+\subsubsection*{The same program, written in Python}
+
+A word about what follows, because it arrives out of order.  The rest of this
+section uses \newterm{classes}, which we have not introduced and shall not
+properly introduce until \link{Section 2.4} and \link{Section 2.5}.  Read it
+for the shape rather than the detail; the code runs, and the machinery under it
+is explained in due course.
+
+The order is not mere convenience.  The two sections that follow are about
+precisely the problems a class solves, and the original must solve them by hand
+because Scheme offers nothing of the kind.  \link{Section 2.4} is about
+attaching a tag to a piece of data so that a program can ask what sort of thing
+it is holding, and about dispatching to the right procedure once it knows---%
+which is what a class is, and what a method is.  \link{Section 2.5} is about
+making one operation serve many kinds of data, which is what \code{\_\_add\_\_}
+is for.  Watching the original build both by hand is worth doing, and worth
+more once one has seen the finished article.
+
+This is also the second of the two passes promised at the opening of the
+chapter: first the original's version, so that its argument stays visible, and
+then the version a Python programmer would actually write.  This is the section
+where the difference between them is largest, and it would be a poor bargain to
+spend it and say nothing.
+
+\begin{revealTheSurface}
+We promised at the outset that this would end with \code{deriv(x + 3, x)}, and
+we can now say what that costs and what it buys.  Everything above kept the
+expression at arm's length: a tuple, tagged with a symbol, taken apart by
+selectors we wrote.  Python will let us do something the original cannot, which
+is to make \code{x + 3} build the expression itself.
+
+To get there we need \code{class}, which is a third way of defining something,
+and worth naming as such.  \code{=} gives a name to a value; \code{def} gives a
+name to a procedure; \code{class} gives a name to a \emph{kind} of thing, and
+says what procedures come with it.\footnote{Though the three are less separate
+than they look.  A procedure made with \code{def} is itself an object of a
+class---\code{type(square)} answers \code{<class 'function'>}---and it can be
+called at all because that class supplies a \code{\_\_call\_\_}, which is a
+two-underscore name of just the sort described below and available to any class
+we care to write.  So a procedure is an object that happens to be callable, and
+an object of ours becomes callable the moment we give it a \code{\_\_call\_\_}
+of its own.  \code{def} is a shortcut for making one, though not quite a
+shortcut for \code{\_\_init\_\_}: Python builds a function with an instruction
+of its own rather than by calling a constructor.  In \link{Section 2.1.3} we
+represented data as a procedure; here the language represents a procedure as
+data.  The two directions meet.}
+
+It is closer to what we have already built than it looks.  In
+\link{Section 2.1.3} we made a pair out of a procedure that had captured
+\code{x} and \code{y}, and we looked at the captured values directly through
+\code{\_\_closure\_\_}.  A class is that idea made comfortable.
+\code{\_\_init\_\_} is the procedure that does the capturing: it runs when the
+object is made, so that writing \code{Symbol("x")} calls it with \code{"x"},
+and what it stores in \code{self} is what the other procedures can afterwards
+see.  The rest are ordinary procedures that share those captured names.
+
+Names with two underscores at each end, like that one, are the procedures
+Python calls on our behalf rather than waiting to be called, and they do very
+nearly what one would guess: \code{\_\_add\_\_} for \code{+},
+\code{\_\_mul\_\_} for \code{*}, \code{\_\_eq\_\_} for \code{==},
+\code{\_\_repr\_\_} for printing.  There are a good many more, and
+\link{Section 2.5} makes proper use of them; four will do here.
+
+The first of those is the one that matters to us.  When Python evaluates
+\code{a + b} it does not add anything; it asks \code{a} to add \code{b}, by
+calling \code{a.\_\_add\_\_(b)}.  So if \code{a} is a kind of object we have
+defined, then what \code{+} means for it is ours to say---and \code{x + 3} can
+build an expression rather than compute a number.\footnote{And if \code{a} does
+not know what to do with \code{b}, Python tries \code{b.\_\_radd\_\_(a)}---the
+same operation approached from the right.  That is how \code{3 * x} works as
+well as \code{x * 3}, and it does more work here than it may appear to: half
+the values \code{deriv} produces are plain numbers, so the addition in its sum
+clause is very often \code{0 + y}, which Python resolves by asking \code{y}.}
+
+\begin{codeBlock}
+>>> class Expression:
+...     def __add__(self, other):
+...         return make_sum(self, other)
+...     def __radd__(self, other):
+...         return make_sum(other, self)
+...     def __mul__(self, other):
+...         return make_product(self, other)
+...     def __rmul__(self, other):
+...         return make_product(other, self)
+\end{codeBlock}
+
+\noindent
+A symbol is an expression that knows its own name; a sum and a product are
+expressions that know their parts.  These three are our representation, and
+they replace the tuples---nothing else changes.
+
+\begin{codeBlock}
+>>> class Symbol(Expression):
+...     def __init__(self, name):
+...         self.name = name
+...     def __repr__(self):
+...         return self.name
+...     def __eq__(self, other):
+...         return isinstance(other, Symbol) and self.name == other.name
+
+>>> class Sum(Expression):
+...     def __init__(self, addend, augend):
+...         self.addend, self.augend = addend, augend
+...     def __repr__(self):
+...         return f"({self.addend} + {self.augend})"
+
+>>> class Product(Expression):
+...     def __init__(self, multiplier, multiplicand):
+...         self.multiplier = multiplier
+...         self.multiplicand = multiplicand
+...     def __repr__(self):
+...         return f"({self.multiplier} * {self.multiplicand})"
+\end{codeBlock}
+
+\noindent
+The selectors are now attributes---\code{exp.addend} where we wrote
+\code{addend(exp)}---and the predicates are \code{isinstance} checks.  But the
+constructors are the same two procedures, with the same simplifying rules
+inside them, and \code{deriv} is the same algorithm:
+
+\begin{codeBlock}
+>>> def deriv(exp, var):
+...     if is_number(exp):
+...         return 0
+...     elif isinstance(exp, Symbol):
+...         return 1 if exp == var else 0
+...     elif isinstance(exp, Sum):
+...         return deriv(exp.addend, var) + deriv(exp.augend, var)
+...     elif isinstance(exp, Product):
+...         return (exp.multiplier * deriv(exp.multiplicand, var)
+...                 + deriv(exp.multiplier, var) * exp.multiplicand)
+...     else:
+...         raise ValueError(f"unknown expression type: {exp}")
+\end{codeBlock}
+
+\noindent
+Look closely at the sum clause.  It reads \code{deriv(...) + deriv(...)}---an
+ordinary addition---and that \code{+} is \code{\_\_add\_\_}, which is
+\code{make\_sum}, which simplifies.  The constructors have not been abolished;
+they have been moved behind the operators, so that writing the rule the way a
+mathematician writes it invokes them automatically.  The simplification of the
+last few pages now happens because of how the rule is spelled.
+
+\begin{codeBlock}
+>>> x, y = Symbol("x"), Symbol("y")
+>>> x + 3
+(x + 3)
+>>> deriv(x + 3, x)
+1
+>>> deriv(x * y, x)
+y
+>>> deriv(x * y * (x + 3), x)
+((x * y) + (y * (x + 3)))
+\end{codeBlock}
+
+\noindent
+Now see what became of the exercises.  \link{Exercise 2.56} is still real: it
+asks for a rule we have not written, and becomes a \code{Power} class and an
+\code{\_\_pow\_\_} method.  \link{Exercise 2.57} is still real, and is now about
+arity rather than notation---what should \code{Sum} hold if a sum may have any
+number of terms?  \link{Exercise 2.58} has gone.  Part (a) asked for infix, and
+we have infix.  Part (b), the one the original calls substantially harder,
+asked for precedence and for unnecessary parentheses to be dropped, and Python's
+own parser has done both before our code is reached.
+
+That last one is worth being precise about, because it is easy to conclude too
+much from it.  Python has not given us algebra for nothing.  It has given us
+the \emph{parser}---the reading of \code{x + 3 * y} as a product inside a
+sum---and that is a real gift, being the eight lines of \link{Exercise 2.58}
+and rather more besides.  What it has not given us is any of the meaning.
+\code{\_\_add\_\_} and \code{\_\_mul\_\_} we wrote ourselves, and they work only
+because we control both kinds of object involved.  The convenience is real, and
+it is standing on the same constructors and selectors we spent the first half
+of this section building by hand.
+\end{revealTheSurface}

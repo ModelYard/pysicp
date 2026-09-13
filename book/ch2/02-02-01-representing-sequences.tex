@@ -1,14 +1,16 @@
 \subsection{Representing Sequences}
 \label{Section 2.2.1}
 
-One of the useful structures we can build with pairs is a
-\newterm{sequence}---an ordered collection of data objects.  There are, of
-course, many ways to represent sequences in terms of pairs.  One particularly
-straightforward representation is illustrated in \link{Figure 2.4}, where the
-sequence 1, 2, 3, 4 is represented as a chain of pairs.  The \code{car} of each
-pair is the corresponding item in the chain, and the \code{cdr} of the pair is
-the next pair in the chain.  The \code{cdr} of the final pair signals the end
-of the sequence by pointing to a distinguished value that is not a pair,
+One of the more useful structures for use in procedures is a
+\newterm{sequence}---an ordered collection of data objects.  In Scheme, this is
+done with pairs.  There are, of course, many ways to represent sequences in
+terms of pairs.  One particularly straightforward representation is illustrated
+in \link{Figure 2.4}, where the sequence 1, 2, 3, 4 is represented as a chain
+of pairs.  This structure is sometimes called a \newterm{linked list}, denoting
+the idea that each element is linked to the next.  The \code{car} of each pair
+is the corresponding item in the chain, and the \code{cdr} of the pair is the
+next pair in the chain.  The \code{cdr} of the final pair signals the end of
+the sequence by pointing to a distinguished value that is not a pair,
 represented in box-and-pointer diagrams as a diagonal line and in programs as
 the value of the variable \code{nil}.  The entire sequence is constructed by
 nested \code{cons} operations:
@@ -80,13 +82,13 @@ it.
 
 Where Scheme provides a built-in procedure \code{list} for assembling a
 sequence, Python asks only for commas.  There is no constructor to call: string
-the elements together with commas and the sequence is made, so that the means of
-combination is a piece of punctuation rather than a procedure.
+the elements together with commas and the sequence is made, so that the means
+of combination is a piece of punctuation rather than a procedure.
 
 Python then prints a tuple as one writes it---the elements separated by commas,
-enclosed in parentheses---so that what comes back on the screen is an expression
-one could type in again.  Thus the data object of \link{Figure 2.4} is printed
-as \code{(1, 2, 3, 4)}:
+enclosed in parentheses---so that what comes back on the screen is an
+expression one could type in again.  Thus the data object of \link{Figure 2.4}
+is printed as \code{(1, 2, 3, 4)}:
 
 \begin{codeBlock}
 >>> one_through_four = (1, 2, 3, 4)
@@ -143,7 +145,8 @@ return to what that costs us in \link{Section 2.2.3}, when we have enough
 procedures written for the cost to be worth measuring.
 \end{notTaste}
 
-The value of \code{nil}, used to terminate the chain of pairs, can be thought
+The value of \code{nil}, used to terminate the chain of pairs in Scheme, can be
+thought
 of as a sequence of no elements, the \newterm{empty list}.  For us it is the
 empty tuple, written \code{()}---a pair of parentheses with nothing between
 them, and the one tuple that needs no comma.\footnote{It is remarkable how much
@@ -222,17 +225,17 @@ for a run instead of a single element.
 \end{revealTheSurface}
 
 Often we work down the whole sequence, and must be able to tell when nothing is
-left of it.  To aid in this, Scheme provides a primitive predicate \code{null?},
-which tests whether its argument is the empty list.  Python provides no such
-procedure, and needs none.  We can compare against the empty tuple directly and
-write \code{items == ()}; but an empty tuple is itself false, so the ordinary
-way to ask is \code{not items}.\footnote{An empty tuple, an empty string, an
-empty dictionary and the number zero are all false in Python, and their
-non-empty counterparts are true, as is every other number.  This is worth
-knowing well beyond sequences: it is why so many Python conditionals test a
-value directly rather than comparing it with anything.}  The procedure
-\code{length}, which returns the number of items in a sequence, illustrates this
-typical pattern of use:
+left of it.  To aid in this, Scheme provides a primitive predicate
+\code{null?}, which tests whether its argument is the empty list.  Python
+provides no such procedure, and needs none.  We can compare against the empty
+tuple directly and write \code{items == ()}; but an empty tuple is itself
+false, so the ordinary way to ask is \code{not items}.\footnote{An empty tuple,
+an empty string, an empty dictionary and the number zero are all false in
+Python, and their non-empty counterparts are true, as is every other number.
+This is worth knowing well beyond sequences: it is why so many Python
+conditionals test a value directly rather than comparing it with anything.} 
+The procedure \code{length}, which returns the number of items in a sequence,
+illustrates this typical pattern of use:
 
 \begin{codeBlock}
 >>> def length(items):
@@ -660,8 +663,8 @@ The original poses this exercise in Scheme, where the second version does
 \emph{not} work: interchanging the arguments to \code{cons} does not append to
 a list, it builds a pair whose first element is the accumulated list and whose
 second is a number, and the result is not a list at all.  Explain why the same
-interchange succeeds here.  What is it about \code{+} on tuples that \code{cons}
-on pairs does not do?
+interchange succeeds here.  What is it about \code{+} on tuples that
+\code{cons} on pairs does not do?
 
 Then count the work.  Each version joins two tuples once per element, and
 joining two tuples copies both.  How many element-copies does each version
@@ -671,11 +674,11 @@ perform on a sequence of \( n \) elements?  How many would the original's
 \phantomsection\label{Exercise 2.23}
 \exerciseHeading{Exercise 2.23:} The procedure \code{for\_each} is
 similar to \code{map}.  It takes as arguments a procedure and a sequence of
-elements.  However, rather than forming a sequence of the results, \code{for\_each}
-just applies the procedure to each of the elements in turn, from left to right.
-The values returned by applying the procedure to the elements are not used at
-all---\code{for\_each} is used with procedures that perform an action, such as
-printing.  For example,
+elements.  However, rather than forming a sequence of the results,
+\code{for\_each} just applies the procedure to each of the elements in turn,
+from left to right. The values returned by applying the procedure to the
+elements are not used at all---\code{for\_each} is used with procedures that
+perform an action, such as printing.  For example,
 
 \begin{codeBlock}
 >>> for_each(print, (57, 321, 88))

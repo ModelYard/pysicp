@@ -1,0 +1,248 @@
+\subsection{Quotation}
+\label{Section 2.3.1}
+
+If we can form compound data using symbols, we can have sequences such as
+
+\begin{codeBlock}
+>>> ("a", "b", "c", "d")
+('a', 'b', 'c', 'd')
+>>> (23, 45, 17)
+(23, 45, 17)
+>>> (("Norah", 12), ("Molly", 9), ("Anna", 7), ("Lauren", 6))
+(('Norah', 12), ('Molly', 9), ('Anna', 7), ('Lauren', 6))
+\end{codeBlock}
+
+\noindent
+There is nothing remarkable about that, and the flatness of the observation is
+worth pausing on, because in the original it is not flat at all.  This is the
+section where the original introduces a new element into its language, and we
+have just done without it.
+
+\begin{buildFromScarcity}
+The original needs \newterm{quotation} because in Lisp a program is a list.
+Writing \code{(a b c)} in a Lisp program is a procedure call, so there must be
+some way to say that you meant the \emph{list} \code{(a b c)} and not the
+calling of \code{a}; the mark \code{'} is that way, and \code{'(a b c)} is the
+list.  The very uniformity that makes Lisp powerful---that code and data are
+the same kind of thing---is what creates the ambiguity that quotation resolves.
+
+Python never merged the two.  \code{("a", "b", "c")} is a tuple and was never
+going to be a procedure call, so there is nothing to disambiguate and no mark
+to introduce.  What is more, Python already has the device the original reaches
+for by analogy: the original observes that natural languages use quotation
+marks to indicate that a word is to be treated literally as a string of
+characters, and then notes that its own quotation works differently.  Ours does
+not.  We write quotation marks around the characters, and get a thing whose
+value is those characters.  The new element of this section is, for us, one the
+language had from the beginning.
+
+We should be clear about what we are giving up, because it is not nothing.  In
+the original, quotation makes every expression available as data, and that is
+the foundation of \link{Chapter 4}, where an interpreter for Lisp is written in
+Lisp using very little more than the machinery of this section.  A Python
+program is not a Python data structure, and no amount of quoting will make it
+one.  When we reach that chapter we shall be starting from somewhere quite
+different.
+\end{buildFromScarcity}
+
+A symbol, for us, is a string: a sequence of characters, written between
+quotation marks.\footnote{Which is a looser notion than the original's.  A
+Scheme symbol is atomic---it has no parts---while a Python string is a sequence
+and will let you ask for its third character or its length.  Nothing in this
+chapter does so, and our \code{is\_pair} answers \code{False} for a string, so
+a symbol is a leaf wherever we meet one.  But the reader should know that the
+indivisibility is a convention we keep rather than a property we have.}
+
+Now we can distinguish between symbols and their values.  The distinction is
+the same one the original is making; only the notation is duller.
+
+\begin{codeBlock}
+>>> a = 1
+>>> b = 2
+>>> (a, b)
+(1, 2)
+>>> ("a", "b")
+('a', 'b')
+>>> ("a", b)
+('a', 2)
+\end{codeBlock}
+
+\noindent
+The first gives the values of \code{a} and \code{b}, the second the symbols
+themselves, the third one of each.  In the original these three are
+distinguished by where the quotation mark falls; here they are distinguished by
+whether a name is written bare or in quotes, which comes to the same thing.
+
+\begin{codeBlock}
+>>> ("a", "b", "c")[0]
+'a'
+>>> ("a", "b", "c")[1:]
+('b', 'c')
+\end{codeBlock}
+
+\noindent
+\begin{notTaste}
+There is a trick worth knowing, and a place where it is the right thing to do.
+If we bind a name to the string of its own name,
+
+\begin{codeBlock}
+>>> x = "x"
+>>> y = "y"
+\end{codeBlock}
+
+\noindent
+then the name and the symbol coincide, and expressions built from symbols can
+be written with bare names:
+
+\begin{codeBlock}
+>>> ("*", x, y)
+('*', 'x', 'y')
+>>> ("+", x, 3)
+('+', 'x', 3)
+\end{codeBlock}
+
+\noindent
+This closes the gap between a name and its value that we were at such pains to
+open a moment ago, which is why it must come afterwards: had we begun here, the
+three expressions above would all have been the same and there would have been
+nothing to see.  Used deliberately, it buys a good deal of readability in
+\link{Section 2.3.2}, where the expressions being differentiated are built from
+exactly such symbols.
+
+It is a convention and not a mechanism.  Nothing stops anyone writing \code{x =
+"y"}, and everything downstream will then be quietly wrong.  Python libraries
+that take this seriously do it properly: SymPy's \code{symbols("x")} returns an
+object that knows its own name, so the correspondence is established by the
+library rather than promised by the programmer.  What we are doing here is the
+poor relation of that, and worth the saving only because our symbols never need
+to do anything but be themselves.
+\end{notTaste}
+
+The original introduces one further primitive for manipulating symbols,
+\code{eq?}, which tests whether two symbols are the same.  Ours is \code{==},
+and it needs a warning.
+
+\begin{revealTheSurface}
+Scheme's \code{eq?} asks whether two symbols are the same object, which invites
+the Python reader to reach for \code{is}.  Do not.  \code{is} asks the same
+question and gives the right answer often enough to be dangerous:
+
+\begin{codeBlock}
+>>> "abracadabra" is "abracadabra"
+True
+>>> "".join(["abra", "cadabra"]) is "abracadabra"
+False
+>>> "".join(["abra", "cadabra"]) == "abracadabra"
+True
+\end{codeBlock}
+
+\noindent
+The same characters, and yet the second is false: Python stores one copy of a
+string written literally in the source, so two literals are one object, while a
+string that was built rather than written is another object with the same
+contents.  A symbol comparison written with \code{is} passes every test its
+author thinks to try and fails on the first symbol that arrives from somewhere
+else.
+
+\code{==} asks whether they have the same characters, which is what the
+original means by ``the same'' here.\footnote{The original's own footnote at
+this point says that defining sameness as ``the same characters in the same
+order'' skirts a deep issue it is not yet ready to address, and promises to
+return to it in \link{Chapter 3}.  The distinction between \code{==} and
+\code{is} is precisely that issue, arriving early and in a form the reader can
+be bitten by.}
+\end{revealTheSurface}
+
+Using \code{==}, we can implement a useful procedure called \code{memq}.  This
+takes two arguments, a symbol and a sequence.  If the symbol is not contained
+in the sequence, then \code{memq} returns false.  Otherwise, it returns the
+subsequence beginning with the first occurrence of the symbol:
+
+\begin{codeBlock}
+>>> def memq(item, x):
+...     if x == ():
+...         return False
+...     elif item == x[0]:
+...         return x
+...     else:
+...         return memq(item, x[1:])
+\end{codeBlock}
+
+\noindent
+For example, the value of
+
+\begin{codeBlock}
+>>> memq("apple", ("pear", "banana", "prune"))
+False
+\end{codeBlock}
+
+\noindent
+is false, whereas the value of
+
+\begin{codeBlock}
+>>> memq("apple", ("x", ("apple", "sauce"), "y", "apple", "pear"))
+('apple', 'pear')
+\end{codeBlock}
+
+\noindent
+is \code{("apple", "pear")}.
+
+Python's \code{in} answers the membership question, so that \code{"apple" in
+("pear", "banana")} is \code{False}.  But it answers only that, where
+\code{memq} hands back the rest of the sequence from the match onwards.  We
+shall want the sequence itself in \link{Section 2.3.3}.
+
+\begin{exerciseGroup}
+\phantomsection\label{Exercise 2.53}
+\exerciseHeading{Exercise 2.53:} What would the interpreter print
+in response to evaluating each of the following expressions?
+
+\begin{codeBlock}
+>>> ("a", "b", "c")
+>>> (("george",),)
+>>> (("x1", "x2"), ("y1", "y2"))[1:]
+>>> (("x1", "x2"), ("y1", "y2"))[1:][0]
+>>> is_pair(("a", "short", "list")[0])
+>>> memq("red", (("red", "shoes"), ("blue", "socks")))
+>>> memq("red", ("red", "shoes", "blue", "socks"))
+\end{codeBlock}
+
+Two of these are worth more than a moment.  The second is the one the comma
+makes or breaks, as \link{Section 2.1.1} warned.  The fifth asks whether a
+symbol is a pair, and the answer says something about how we have chosen to
+represent symbols.
+
+\phantomsection\label{Exercise 2.54}
+\exerciseHeading{Exercise 2.54:} Two sequences are said to be
+equal if they contain equal elements arranged in the same order.  For example,
+
+\begin{codeBlock}
+>>> ("this", "is", "a", "list") == ("this", "is", "a", "list")
+True
+>>> ("this", "is", "a", "list") == ("this", ("is", "a"), "list")
+False
+\end{codeBlock}
+
+\noindent
+Python has answered the question already: \code{==} on tuples compares element
+by element, and descends into elements that are themselves tuples.  The
+original has to build this, defining \code{equal?} recursively in terms of the
+\code{eq?} equality of symbols: \code{a} and \code{b} are equal if they are
+both symbols and the symbols are the same, or if they are both sequences whose
+first elements are equal and whose rests are equal.
+
+Implement it anyway, as \code{is\_equal}, without using \code{==} on anything
+but symbols and numbers.  Then say what your procedure does that \code{==} does
+not, and what \code{==} does that yours does not.
+
+\phantomsection\label{Exercise 2.55}
+\exerciseHeading{Exercise 2.55:} In the original, Eva Lu Ator types
+the expression \code{(car ''abracadabra)} and is surprised when the interpreter
+prints back \code{quote}.  The explanation is that \code{'x} is an abbreviation
+for the list \code{(quote x)}, so \code{''abracadabra} is the list \code{(quote
+abracadabra)}, whose first element is the symbol \code{quote}.
+
+There is no corresponding expression in Python, and no surprise to be had.
+Explain why not.  Your answer should say what Eva's expression relies on that
+ours cannot supply, and it should mention \link{Chapter 4}.
+\end{exerciseGroup}
