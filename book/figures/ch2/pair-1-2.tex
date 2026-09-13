@@ -1,0 +1,19 @@
+% Box-and-pointer representation of (cons 1 2), for Section 2.2.
+% Redrawn from upstream's figure 2.2 so the web edition has a picture at all.
+\input{book/figures/ch2/pair-styles}
+\begin{tikzpicture}[y = -1mm, x = 1mm]
+
+\node[half] (pl) at (8, 0) {};
+\node[half] (pr) at (16, 0) {};
+\node[pair] (p)  at (12, 0) {};
+\draw (pl.north east) -- (pl.south east);
+\node[dot] (pld) at (8, 0) {};
+\node[dot] (prd) at (16, 0) {};
+
+\node[leaf] (l1) at (4, 14) {1};
+\node[leaf] (l2) at (20, 14) {2};
+
+\draw[ptr] (pld) -- (l1.north);
+\draw[ptr] (prd) -- (l2.north);
+
+\end{tikzpicture}

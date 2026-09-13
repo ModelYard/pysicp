@@ -1,0 +1,28 @@
+% A frame described by three vectors, for Section 2.2.4.
+% Redrawn from upstream's figure 2.15.
+\begin{tikzpicture}[
+  x = 1mm, y = -1mm,
+  vec/.style   = {-{Latex[length=2mm, width=1.8mm]}, thin},
+  note/.style  = {font=\footnotesize, align=center},
+]
+
+\coordinate (screen) at (56, 46);   % the display's own (0,0)
+\coordinate (origin) at (26, 38);   % the frame's origin
+\coordinate (e1)     at (70, 20);   % end of edge1
+\coordinate (e2)     at (10, 12);   % end of edge2
+\coordinate (far)    at ($(e1) + (e2) - (origin)$);
+
+% the frame itself, dashed on the two sides the edges do not draw
+\draw[dashed] (e1) -- (far) -- (e2);
+
+\draw[vec] (screen) -- (origin);
+\draw[vec] (origin) -- (e1);
+\draw[vec] (origin) -- (e2);
+
+\fill (screen) circle (0.8mm);
+\node[note, anchor=west] at (58, 50) {(0, 0) point on\\display screen};
+\node[note, anchor=north] at (26, 43) {frame\\origin vector};
+\node[note, anchor=west]  at (72, 20) {frame\\edge1 vector};
+\node[note, anchor=east]  at (8, 12) {frame\\edge2 vector};
+
+\end{tikzpicture}

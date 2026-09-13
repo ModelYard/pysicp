@@ -1,0 +1,48 @@
+% Two ways to combine 1, 2, 3 and 4 using pairs, for Section 2.2.
+% Redrawn from upstream's figure 2.3.
+\input{book/figures/ch2/pair-styles}
+\begin{tikzpicture}[y = -1mm, x = 1mm]
+
+% --- left: (cons (cons 1 2) (cons 3 4)) ---
+\foreach \n/\x/\y in {R/10/0, A/6/17, B/40/0} {
+  \node[half] (\n l) at (\x, \y) {};
+  \node[half] (\n r) at (\x+8, \y) {};
+  \node[pair] (\n)   at (\x+4, \y) {};
+  \draw (\n l.north east) -- (\n l.south east);
+  \node[dot] (\n d)  at (\x, \y) {};
+  \node[dot] (\n rd) at (\x+8, \y) {};
+}
+\node[leaf] (L1) at (2, 34) {1};
+\node[leaf] (L2) at (16, 34) {2};
+\node[leaf] (L3) at (38, 17) {3};
+\node[leaf] (L4) at (52, 17) {4};
+\draw[ptr] (Rd)  -- (A.north);
+\draw[ptr] (Rrd) -- (Bl.west);
+\draw[ptr] (Ad)  -- (L1.north);
+\draw[ptr] (Ard) -- (L2.north);
+\draw[ptr] (Bd)  -- (L3.north);
+\draw[ptr] (Brd) -- (L4.north);
+\node[plabel] at (26, 46) {(cons (cons 1 2) (cons 3 4))};
+
+% --- right: (cons (cons 1 (cons 2 3)) 4) ---
+\foreach \n/\x/\y in {S/92/0, C/88/17, D/112/17} {
+  \node[half] (\n l) at (\x, \y) {};
+  \node[half] (\n r) at (\x+8, \y) {};
+  \node[pair] (\n)   at (\x+4, \y) {};
+  \draw (\n l.north east) -- (\n l.south east);
+  \node[dot] (\n d)  at (\x, \y) {};
+  \node[dot] (\n rd) at (\x+8, \y) {};
+}
+\node[leaf] (M4) at (120, 0) {4};
+\node[leaf] (M1) at (86, 34) {1};
+\node[leaf] (M2) at (110, 34) {2};
+\node[leaf] (M3) at (124, 34) {3};
+\draw[ptr] (Sd)  -- (C.north);
+\draw[ptr] (Srd) -- (M4.west);
+\draw[ptr] (Cd)  -- (M1.north);
+\draw[ptr] (Crd) -- (Dl.west);
+\draw[ptr] (Dd)  -- (M2.north);
+\draw[ptr] (Drd) -- (M3.north);
+\node[plabel] at (106, 46) {(cons (cons 1 (cons 2 3)) 4)};
+
+\end{tikzpicture}

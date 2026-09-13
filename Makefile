@@ -114,7 +114,10 @@ section: $(PICTURE_PDFS)
 # dvisvgm reads that; --font-format=woff embeds the glyphs, so the SVG does not
 # depend on the reader having the book's fonts.
 
-FIG_SRCS := $(shell find book/figures -name '*.tex' 2>/dev/null)
+# pair-styles.tex is a \tikzset shared by the box-and-pointer figures, not a
+# figure itself -- rendering it would produce an empty SVG.
+FIG_SRCS := $(filter-out %/pair-styles.tex,\
+              $(shell find book/figures -name '*.tex' 2>/dev/null))
 FIG_SVGS := $(patsubst book/figures/%.tex,build/figures/%.svg,$(FIG_SRCS))
 
 build/figures/%.svg: book/figures/%.tex tools/figures/standalone-preamble.tex
@@ -144,7 +147,8 @@ PICTURE_NAMES := wave wave-beside wave-flipped-pairs wave-right-split \
 PICTURE_PDFS  := $(addprefix build/figures/ch2/,$(addsuffix .pdf,$(PICTURE_NAMES)))
 PICTURE_SVGS  := $(addprefix build/figures/ch2/,$(addsuffix .svg,$(PICTURE_NAMES)))
 
-$(PICTURE_PDFS) $(PICTURE_SVGS) &: code/ch2/picture_language.py tools/figures/picture_figures.py
+$(PICTURE_PDFS) $(PICTURE_SVGS) &: src/pysicp/picture.py tools/figures/picture_figures.py \
+                                  book/ch2/02-02-04-example-a-picture-language.tex
 	uv run python tools/figures/picture_figures.py
 
 pictures: $(PICTURE_PDFS) $(PICTURE_SVGS)

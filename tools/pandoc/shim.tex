@@ -50,3 +50,11 @@
 \newenvironment{revealTheSurface}{\begin{translationNote}{Reveal the surface}}{\end{translationNote}}
 \newenvironment{notTaste}{\begin{translationNote}{Fact, not taste}}{\end{translationNote}}
 \newcommand{\generatedFigure}[2][]{\includegraphics{figures/#2.svg}}
+% Scaling is a print concern; the web edition sizes figures with CSS. Keep the
+% content and drop the box, or pandoc stops at the unexpected brace.
+\newcommand{\resizebox}[3]{#3}
+% preprocess.py flattens this to a plain paragraph before pandoc runs, so this
+% definition is never reached. It is here because the preamble audit compares
+% what book/preamble defines against what this shim declares, and a macro
+% missing from both is the silent-deletion bug the audit exists to prevent.
+\newenvironment{quoteInFootnote}{}{}

@@ -67,6 +67,15 @@ GENERATED_FIGURE = re.compile(r"\\generatedFigure(?:\[[^\]]*\])?\{([^}]*)\}")
 PYTHON_FILE = re.compile(r"\\pythonFile(?:\[[^\]]*\])?\{([^}]*)\}")
 META = re.compile(r"\\meta\{([^}]*)\}")
 SYNTAX_FORM = re.compile(r"\\begin\{syntaxForm\}(.*?)\\end\{syntaxForm\}", re.DOTALL)
+# Pandoc cannot parse an environment inside a \footnote argument: it stops
+# at the closing brace with "unexpected Symbol }". A block quotation in a
+# footnote is therefore marked with its own environment and flattened here.
+FOOTNOTE_QUOTE = re.compile(
+    r"\\begin\{quoteInFootnote\}(.*?)\\end\{quoteInFootnote\}", re.DOTALL
+)
+# Any OTHER environment inside a footnote is the same fault waiting to
+# happen, and is caught below rather than left to pandoc to fail on.
+FOOTNOTE = re.compile(r"\\footnote\{")
 # A bibliography entry marks itself with \phantomsection\label{Stoy 1977}.
 # Pandoc ignores a bare \label, so every citation in the book would land
 # nowhere; \hypertarget it does understand, and turns into a real anchor.
@@ -112,6 +121,36 @@ def syntax_form(match: re.Match[str]) -> str:
     )
 
 
+def audit_footnotes(text: str) -> None:
+    """Fail on an environment inside a footnote, which pandoc cannot parse.
+
+    It gives up at the footnote's closing brace with a message pointing
+    nowhere near the cause, so the check is worth making here where the
+    surrounding text can be quoted back. \\verbatim is the exception: pandoc
+    reads it lexically and is perfectly happy with it in a footnote, which is
+    why the code blocks in Chapter 1's footnotes have always worked.
+    """
+    for match in FOOTNOTE.finditer(text):
+        depth, i = 1, match.end()
+        while i < len(text) and depth:
+            if text[i] == "{":
+                depth += 1
+            elif text[i] == "}":
+                depth -= 1
+            i += 1
+        inner = text[match.end() : i - 1]
+        found = sorted(set(re.findall(r"\\begin\{(\w+)\}", inner)) - {"verbatim"})
+        if found:
+            raise SystemExit(
+                "error: pandoc cannot parse an environment inside a footnote,\n"
+                "       and fails with a message pointing elsewhere:\n"
+                "           " + "  ".join(found) + "\n"
+                "       in the footnote beginning: " + inner[:60].strip() + "\n"
+                "       Use quoteInFootnote for a block quotation, or move the\n"
+                "       environment out of the footnote."
+            )
+
+
 def anchor(label: str) -> str:
     """Match the slug sicp.lua derives, so links and targets agree."""
     return re.sub(r"[^0-9A-Za-z]+", "-", label).strip("-").lower()
@@ -119,10 +158,14 @@ def anchor(label: str) -> str:
 
 def transform(text: str) -> str:
     text = BIB_LABEL.sub(lambda m: "\\hypertarget{" + anchor(m.group(1)) + "}{}", text)
+    text = FOOTNOTE_QUOTE.sub(lambda m: m.group(1).strip() + "\n", text)
     text = SYNTAX_FORM.sub(syntax_form, text)
     for env in VERBATIM_ENVS:
         text = text.replace(f"\\begin{{{env}}}", "\\begin{verbatim}")
         text = text.replace(f"\\end{{{env}}}", "\\end{verbatim}")
+    # After the rewrite above, so that a code block in a footnote -- which
+    # pandoc handles perfectly well once it is verbatim -- does not trip it.
+    audit_footnotes(text)
     text = PYTHON_FILE.sub(expand_python_file, text)
     text = FIGURE_INPUT.sub(r"\\includegraphics{figures/\1.svg}", text)
     text = GENERATED_FIGURE.sub(r"\\includegraphics{figures/\1.svg}", text)

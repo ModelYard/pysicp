@@ -1,0 +1,25 @@
+% The signal-flow plans of Section 2.2.3, redrawn from upstream's figure 2.7.
+% The stage names are ours -- is_odd where the original writes odd?, and a
+% final tuple where it accumulates with cons -- so that the diagram agrees
+% with the code on the facing pages.
+\begin{tikzpicture}[
+  y = -1mm, x = 1mm,
+  % text width is what makes align=left bite: without it the block of text is
+  % centred in the node however its own lines are aligned.
+  stage/.style = {draw, rounded corners=1.5pt, fill=black!5, align=left,
+                  text width=22mm, minimum width=26mm, minimum height=12mm,
+                  inner sep=2pt, font=\footnotesize},
+  flow/.style  = {-{Latex[length=1.8mm, width=1.6mm]}, thin},
+]
+
+\foreach \i/\a/\b in {0/{enumerate:}/{tree leaves}, 1/{filter:}/{\ttfamily is\_odd},
+                      2/{map:}/{\ttfamily square}, 3/{accumulate:}/{\ttfamily add, 0}}
+  \node[stage] (t\i) at (\i*34, 0) {\a\\\b};
+\foreach \i in {0, 1, 2} \draw[flow] (t\i.east) -- (t\the\numexpr\i+1\relax.west);
+
+\foreach \i/\a/\b in {0/{enumerate:}/{integers}, 1/{map:}/{\ttfamily fib},
+                      2/{filter:}/{\ttfamily is\_even}, 3/{accumulate:}/{\ttfamily tuple}}
+  \node[stage] (b\i) at (\i*34, 22) {\a\\\b};
+\foreach \i in {0, 1, 2} \draw[flow] (b\i.east) -- (b\the\numexpr\i+1\relax.west);
+
+\end{tikzpicture}

@@ -107,3 +107,14 @@
 % rewrites it to the SVG of the same name for the web edition.
 \newcommand{\generatedFigure}[2][\linewidth]{%
   \includegraphics[width=#1]{build/figures/#2.pdf}}
+
+% --- quotations inside footnotes -------------------------------------------
+%
+% Upstream's biography of William Barton Rogers puts three block quotations
+% inside a single footnote. Pandoc cannot parse an environment inside a
+% \footnote argument at all -- it stops at the closing brace -- so these are
+% marked with an environment of their own, which tools/pandoc/preprocess.py
+% flattens to a plain paragraph before pandoc ever sees it.
+\newenvironment{quoteInFootnote}
+  {\par\smallskip\leftskip=1.2em\rightskip=1.2em\noindent\ignorespaces}
+  {\par\smallskip}

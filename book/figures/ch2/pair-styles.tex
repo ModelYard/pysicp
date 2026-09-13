@@ -1,0 +1,19 @@
+% Shared styles for the box-and-pointer figures of Chapter 2.
+%
+% \input at the top of each such figure, so that the cells, leaves, pointers
+% and nil strokes are drawn identically wherever they appear. A pair is ONE
+% rounded rectangle with a divider through it, never two abutting boxes:
+% rounding two boxes would round their inner edges too, which is not how the
+% original's cells look.
+\tikzset{
+  pair/.style  = {draw, rounded corners=1.2pt, fill=black!5, minimum width=16mm,
+                  minimum height=7mm, inner sep=0pt, outer sep=0pt},
+  half/.style  = {minimum width=8mm, minimum height=7mm,
+                  inner sep=0pt, outer sep=0pt},
+  leaf/.style  = {draw, rounded corners=1.2pt, fill=white, minimum width=8mm,
+                  minimum height=7mm, inner sep=0pt, outer sep=0pt,
+                  font=\ttfamily\footnotesize},
+  dot/.style   = {circle, fill, inner sep=1.1pt},
+  ptr/.style   = {-{Latex[length=1.6mm, width=1.4mm]}, thin},
+  plabel/.style = {font=\ttfamily\scriptsize, inner sep=1pt},
+}

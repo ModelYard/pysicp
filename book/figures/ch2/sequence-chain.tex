@@ -1,0 +1,27 @@
+% The sequence 1, 2, 3, 4 as a chain of pairs, for Section 2.2.1.
+% Redrawn from upstream's figure 2.4. The final cdr carries the conventional
+% diagonal stroke standing for nil.
+\input{book/figures/ch2/pair-styles}
+\begin{tikzpicture}[y = -1mm, x = 1mm]
+
+\foreach \n/\x in {a/10, b/36, c/62, d/88} {
+  \node[half] (\n l) at (\x, 0) {};
+  \node[half] (\n r) at (\x+8, 0) {};
+  \node[pair] (\n)   at (\x+4, 0) {};
+  \draw (\n l.north east) -- (\n l.south east);
+  \node[dot] (\n d) at (\x, 0) {};
+}
+\foreach \n in {a, b, c} \node[dot] (\n rd) at (\n r.center) {};
+
+% the final cdr is nil
+\draw (dr.south west) -- (dr.north east);
+
+\foreach \n/\x/\v in {a/10/1, b/36/2, c/62/3, d/88/4}
+  \node[leaf] (\n leaf) at (\x, 16) {\v};
+
+\foreach \n in {a, b, c, d} \draw[ptr] (\n d) -- (\n leaf.north);
+\draw[ptr] (ard) -- (bl.west);
+\draw[ptr] (brd) -- (cl.west);
+\draw[ptr] (crd) -- (dl.west);
+
+\end{tikzpicture}
